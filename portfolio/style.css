@@ -105,7 +105,35 @@ body {
    Hero
    ============================================= */
 #hero {
-  padding: 9rem 0 8rem;
+  padding: 9rem 0 3.5rem;
+}
+
+#work.section {
+  padding-top: 3.5rem;
+}
+
+.hero-layout {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 5rem;
+  align-items: center;
+}
+
+.hero-text {
+  min-width: 0;
+}
+
+.hero-photo-wrap {
+  flex-shrink: 0;
+}
+
+.hero-photo {
+  display: block;
+  width: 200px;
+  height: 240px;
+  object-fit: cover;
+  object-position: center top;
+  border: 1px solid var(--border);
 }
 
 .eyebrow {
@@ -653,6 +681,20 @@ body {
 
   #hero {
     padding: 6rem 0 5rem;
+  }
+
+  .hero-layout {
+    grid-template-columns: 1fr;
+    gap: 2.5rem;
+  }
+
+  .hero-photo-wrap {
+    order: -1;
+  }
+
+  .hero-photo {
+    width: 100px;
+    height: 120px;
   }
 
   .pinned-grid {
