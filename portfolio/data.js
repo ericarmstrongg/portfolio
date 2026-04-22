@@ -197,7 +197,7 @@ const BIO =
 // Contact links
 const CONTACT = {
   email:    "eric.armstrongg@gmail.com",
-  github:   "https://github.com/ericarmstrong",
+  github:   "https://github.com/ericarmstrongg",
   linkedin: "https://linkedin.com/in/ericarmstrong",
 };
 
