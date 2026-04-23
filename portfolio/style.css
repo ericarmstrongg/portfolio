@@ -8,12 +8,12 @@
 }
 
 :root {
-  --bg:         #0a0a0f;
-  --text:       #ddd9d0;
-  --text-dim:   #6b6860;
-  --accent:     #7fba9e;
-  --border:     rgba(255, 255, 255, 0.07);
-  --card-hover: rgba(255, 255, 255, 0.025);
+  --bg:         #f5f0e8;
+  --text:       #1a1714;
+  --text-dim:   #7d6f5f;
+  --accent:     #c86b29;
+  --border:     rgba(26, 23, 20, 0.1);
+  --card-hover: rgba(26, 23, 20, 0.035);
 }
 
 html {
@@ -61,7 +61,7 @@ body {
   z-index: 100;
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
-  background: rgba(10, 10, 15, 0.8);
+  background: rgba(245, 240, 232, 0.88);
   border-bottom: 1px solid var(--border);
 }
 
@@ -198,13 +198,13 @@ body {
 }
 
 .status-dot.live {
-  background: #4ade80;
-  box-shadow: 0 0 8px rgba(74, 222, 128, 0.45);
+  background: #2e7d42;
+  box-shadow: 0 0 8px rgba(46, 125, 66, 0.4);
 }
 
 .status-dot.wip {
-  background: #f59e0b;
-  box-shadow: 0 0 8px rgba(245, 158, 11, 0.4);
+  background: #d4860e;
+  box-shadow: 0 0 8px rgba(212, 134, 14, 0.4);
 }
 
 .project-tags {
@@ -217,7 +217,7 @@ body {
   font-family: 'DM Mono', monospace;
   font-size: 0.67rem;
   color: var(--text-dim);
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(26, 23, 20, 0.06);
   padding: 0.2rem 0.55rem;
   border-radius: 3px;
   letter-spacing: 0.02em;
