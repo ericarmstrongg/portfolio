@@ -162,30 +162,6 @@ body {
   color: var(--accent);
 }
 
-.hero-sub {
-  font-size: 1.05rem;
-  font-weight: 300;
-  color: var(--text-dim);
-  max-width: 500px;
-  margin-bottom: 2.75rem;
-  line-height: 1.75;
-}
-
-.pill-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.pill {
-  font-family: 'DM Mono', monospace;
-  font-size: 0.7rem;
-  color: var(--text-dim);
-  border: 1px solid var(--border);
-  padding: 0.3rem 0.8rem;
-  border-radius: 999px;
-  letter-spacing: 0.02em;
-}
 
 /* =============================================
    Shared project primitives

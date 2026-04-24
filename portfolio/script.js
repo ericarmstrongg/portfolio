@@ -1,17 +1,5 @@
 // Data is defined in data.js, loaded before this script.
 
-// --- Hero subtitle ---
-document.getElementById("hero-subtitle").textContent = HERO_SUBTITLE;
-
-// --- Tech stack pills ---
-const pillRow = document.getElementById("pill-row");
-TECH_STACK.forEach((tag) => {
-  const pill = document.createElement("span");
-  pill.className = "pill";
-  pill.textContent = tag;
-  pillRow.appendChild(pill);
-});
-
 // --- Projects feed ---
 const pinnedProjects = PROJECTS.filter((p) => p.pinned);
 const feedProjects = PROJECTS
