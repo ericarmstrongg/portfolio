@@ -163,21 +163,6 @@ const PROJECTS = [
   },
 ];
 
-// Hero subtitle paragraph
-const HERO_SUBTITLE =
-  "I turn ambiguous problems into products people actually use. " +
-  "Currently building at the intersection of AI and workflow tooling.";
-
-// Tech stack pills in the hero
-const TECH_STACK = [
-  "product strategy",
-  "python",
-  "sql",
-  "figma",
-  "LLMs",
-  "no-code / low-code",
-];
-
 // About — stat blocks (left column)
 const STATS = [
   { number: "Golden, CO", label: "based in" },
