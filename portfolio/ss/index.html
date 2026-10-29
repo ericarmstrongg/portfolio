@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="dark">
+<title>Secret Santa</title>
+<style>
+  body{margin:0;background:#06070d;color:#e8e9f0;font:17px/1.5 Inter,system-ui,sans-serif;padding:24px 16px}
+  main{max-width:560px;margin:0 auto}
+  h1{font-size:28px;margin:0 0 4px} h2{font-size:18px;margin:28px 0 8px}
+  .card{background:#12141f;border:1px solid #232637;border-radius:14px;padding:16px;margin:12px 0}
+  textarea{width:100%;box-sizing:border-box;min-height:110px;background:#0b0d16;color:inherit;border:1px solid #2a2e44;border-radius:10px;padding:10px;font:inherit}
+  button{background:#5b6cff;color:#fff;border:0;border-radius:10px;padding:10px 16px;font:inherit;font-weight:600;margin-top:8px}
+  pre{white-space:pre-wrap;font:inherit;margin:4px 0 0}.muted{color:#9aa0b8}
+</style>
+</head>
+<body>
+<main id="app"><p class="muted">Loading…</p></main>
+<script>
+const $ = (s) => document.querySelector(s);
+const esc = (s) => s.replace(/[&<>"]/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const api = (path, method = "GET", body) =>
+  fetch("/ss/api" + path, { method, headers: body ? { "Content-Type": "application/json" } : {}, body: body && JSON.stringify(body) })
+    .then((r) => (r.ok ? r.json() : Promise.reject(r)));
+
+function editor(p, label) {
+  return `<div class="card"><strong>${esc(label)}</strong>
+    <textarea data-person="${esc(p.id)}" placeholder="Ideas, sizes, favorites…">${esc(p.wishlist)}</textarea>
+    <button data-save="${esc(p.id)}">Save</button> <span class="muted" data-status="${esc(p.id)}"></span></div>`;
+}
+
+async function render() {
+  const d = await api("/me");
+  let h = `<h1>Secret Santa</h1><p class="muted">Hi ${esc(d.me.name)}.</p>`;
+  if (d.drawn) {
+    h += "<h2>You're buying for</h2>";
+    h += d.assignments.map((a) => `<div class="card"><strong>${esc(a.name)}</strong><pre>${esc(a.wishlist) || "<span class='muted'>No list yet.</span>"}</pre></div>`).join("");
+  } else {
+    h += `<p class="muted">The draw hasn't happened yet. Add your wishlist in the meantime.</p>`;
+  }
+  h += "<h2>Your wishlist</h2>" + editor(d.me, "My list");
+  if (d.kids.length) h += "<h2>Kids' wishlists</h2>" + d.kids.map((k) => editor(k, k.name)).join("");
+  if (d.isOrganizer && !d.drawn) h += `<h2>Organizer</h2><div class="card"><button id="draw">Run the draw</button> <span class="muted" id="drawStatus"></span></div>`;
+  $("#app").innerHTML = h;
+
+  document.querySelectorAll("[data-save]").forEach((b) => b.addEventListener("click", async () => {
+    const id = b.dataset.save, st = document.querySelector(`[data-status="${id}"]`);
+    st.textContent = "Saving…";
+    try { await api("/wishlist", "PUT", { person: id, text: document.querySelector(`[data-person="${id}"]`).value }); st.textContent = "Saved"; }
+    catch { st.textContent = "Couldn't save. Try again."; }
+  }));
+  const draw = $("#draw");
+  if (draw) draw.addEventListener("click", async () => {
+    if (!confirm("Run the draw? It can't be redone.")) return;
+    try { await api("/draw", "POST", {}); render(); } catch { $("#drawStatus").textContent = "Draw failed."; }
+  });
+}
+render().catch(() => { $("#app").innerHTML = "<p>Something went wrong. Reopen the link from the Majestic app.</p>"; });
+</script>
+</body>
+</html>

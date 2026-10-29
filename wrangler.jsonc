@@ -1,13 +1,25 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "portfolio",
+  "main": "src/worker.js",
   "compatibility_date": "2026-04-19",
   "observability": {
     "enabled": true
   },
   "assets": {
-    "directory": "portfolio"
+    "directory": "portfolio",
+    "binding": "ASSETS",
+    // Only the mini app runs the Worker; the landing page stays on the static path.
+    "run_worker_first": ["/ss", "/ss/*"]
   },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "portfolio-ss",
+      "database_id": "REPLACE_AFTER_wrangler_d1_create_portfolio-ss",
+      "migrations_dir": "migrations"
+    }
+  ],
   "compatibility_flags": [
     "nodejs_compat"
   ]
