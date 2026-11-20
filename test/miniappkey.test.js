@@ -58,3 +58,23 @@ test("validly signed but overlong key refused", async () => {
   assert.ok(k.length > 2048);
   assert.equal(await v(k), null);
 });
+
+// The contract with the app. The same key is pinned in armstrong-ios
+// `functions/test/miniappkey.test.ts`, whose signer is a separate
+// implementation (Node's createHmac, not Web Crypto). If either side changes
+// its encoding, one of the two suites goes red instead of every visitor quietly
+// getting a 403. The name is non-ASCII on purpose: UTF-8 inside base64 is where
+// two encoders are likeliest to disagree.
+const VECTOR_SECRET = "contract-vector-secret-not-a-real-one-0123";
+const VECTOR_PAYLOAD = { uid: "uid_eric", name: "Éric “E” Armstrong", trip: "trip_steamboat", app: "ss", exp: 1798761600 };
+const VECTOR_KEY =
+  "eyJ1aWQiOiJ1aWRfZXJpYyIsIm5hbWUiOiLDiXJpYyDigJxF4oCdIEFybXN0cm9uZyIsInRyaXAiOiJ0cmlwX3N0ZWFtYm9hdCIsImFwcCI6InNzIiwiZXhwIjoxNzk4NzYxNjAwfQ" +
+  ".Wdq-wgsB4giZwjaFw74FKkhaT224d5E4wdDjq8LgRAA";
+
+test("the app's contract vector verifies to exactly its payload", async () => {
+  const claims = await verifyKey(VECTOR_KEY, { secret: VECTOR_SECRET, app: "ss", now: VECTOR_PAYLOAD.exp - 60 });
+  assert.deepEqual(claims, VECTOR_PAYLOAD);
+});
+test("and this side signs it byte for byte", async () => {
+  assert.equal(await signKey(VECTOR_PAYLOAD, VECTOR_SECRET), VECTOR_KEY);
+});

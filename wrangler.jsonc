@@ -16,7 +16,7 @@
     {
       "binding": "DB",
       "database_name": "portfolio-ss",
-      "database_id": "REPLACE_AFTER_wrangler_d1_create_portfolio-ss",
+      "database_id": "9ba55006-88e5-4990-ae64-3d35b1e70b7a",
       "migrations_dir": "migrations"
     }
   ],
