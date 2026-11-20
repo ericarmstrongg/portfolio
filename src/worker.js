@@ -1,5 +1,6 @@
 import { verifyKey } from "./lib/miniappkey.js";
 import * as realRoster from "./roster.js";
+import { DENIED_HTML } from "./denied.js";
 
 const APP = "ss";
 const COOKIE = "__Host-ms_ss";
@@ -13,7 +14,9 @@ const SEC = {
   "X-Content-Type-Options": "nosniff",
 };
 
-const denied = () => new Response("no permission", { status: 403, headers: { ...SEC, "Content-Type": "text/plain" } });
+// A person who opened the page gets an explanation; a script calling the API gets a status. Neither says why.
+const deniedPage = () => new Response(DENIED_HTML, { status: 403, headers: { ...SEC, "Content-Type": "text/html; charset=utf-8" } });
+const denied = () => new Response(JSON.stringify({ error: "forbidden" }), { status: 403, headers: { ...SEC, "Content-Type": "application/json" } });
 const json = (data, status = 200) =>
   new Response(JSON.stringify(data), { status, headers: { ...SEC, "Content-Type": "application/json" } });
 const bad = () => json({ error: "bad request" }, 400);
@@ -117,12 +120,13 @@ export function createHandler({ roster = realRoster, now = () => Math.floor(Date
 
     const t = now();
     const verify = (k) => verifyKey(k, { secret: env.MINIAPP_KEY_SECRET, app: APP, now: t });
+    const refuse = url.pathname.startsWith("/ss/api/") ? denied : deniedPage;
 
     // 1. Exchange ?k= for a cookie, then drop it from the URL.
     if (url.searchParams.has("k")) {
       const k = url.searchParams.get("k");
       const claims = await verify(k);
-      if (!claims || claims.trip !== roster.TRIP) return denied();
+      if (!claims || claims.trip !== roster.TRIP) return refuse();
       url.searchParams.delete("k");
       return new Response(null, {
         status: 302,
@@ -136,12 +140,12 @@ export function createHandler({ roster = realRoster, now = () => Math.floor(Date
 
     // 2. Everything else needs a valid cookie for a rostered adult.
     const claims = await verify(readCookie(request, COOKIE));
-    if (!claims || claims.trip !== roster.TRIP) return denied();
+    if (!claims || claims.trip !== roster.TRIP) return refuse();
     const me = roster.ADULTS.find((a) => a.uid === claims.uid);
-    if (!me) return denied();
+    if (!me) return refuse();
 
     if (!url.pathname.startsWith("/ss/api/")) {
-      if (request.method !== "GET" && request.method !== "HEAD") return denied();
+      if (request.method !== "GET" && request.method !== "HEAD") return refuse();
       return withSec(await env.ASSETS.fetch(new Request(new URL("/ss/", url), { method: "GET" })));
     }
 

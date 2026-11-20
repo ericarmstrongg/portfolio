@@ -54,11 +54,27 @@ test("bare visit, garbage and tampered keys get 403", async () => {
   assert.equal((await h(req("/ss/?k=" + k.slice(0, -2) + "zz"), env)).status, 403);
   assert.equal((await h(req("/ss/", { headers: { Cookie: "__Host-ms_ss=junk" } }), env)).status, 403);
 });
-test("403 carries no hints and is noindex", async () => {
-  const res = await mk()(req("/ss/"), env);
-  assert.equal(await res.text(), "no permission");
-  assert.match(res.headers.get("X-Robots-Tag"), /noindex/);
-  assert.equal(res.headers.get("Referrer-Policy"), "no-referrer");
+test("a refused visit gets the same explanatory page whatever the reason, naming nobody", async () => {
+  const h = mk();
+  const pages = [];
+  for (const r of [req("/ss/"), req("/ss/?k=abc"), req("/ss/", { headers: { Cookie: "__Host-ms_ss=" + (await key("uid_stranger")) } }), req("/ss/?k=" + (await key("uid_tom", { exp: now - 1 })))]) {
+    const res = await h(r, env);
+    assert.equal(res.status, 403);
+    assert.match(res.headers.get("Content-Type"), /^text\/html/);
+    assert.match(res.headers.get("X-Robots-Tag"), /noindex/);
+    assert.equal(res.headers.get("Referrer-Policy"), "no-referrer");
+    pages.push(await res.text());
+  }
+  // One page for every cause — a different one would tell a stranger which check they failed.
+  assert.equal(new Set(pages).size, 1);
+  assert.match(pages[0], /Majestic app/);
+  for (const p of [...roster.ADULTS, ...roster.KIDS]) assert.ok(!pages[0].includes(p.name), `names ${p.name}`);
+  assert.ok(!pages[0].includes(roster.TRIP + '"'));
+});
+test("a refused API call gets JSON, not the page", async () => {
+  const res = await mk()(req("/ss/api/me"), env);
+  assert.equal(res.status, 403);
+  assert.match(res.headers.get("Content-Type"), /^application\/json/);
 });
 test("valid key sets cookie and redirects without k", async () => {
   const res = await mk()(req("/ss/?x=1&k=" + (await key("uid_tom"))), env);

@@ -5,45 +5,162 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <meta name="referrer" content="no-referrer">
-<meta name="color-scheme" content="dark">
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#e3ecf6">
 <title>Secret Santa</title>
 <style>
-  :root{--bg:#06070d;--card:#12141f;--line:#232637;--field:#0b0d16;--text:#e8e9f0;--muted:#9aa0b8;--accent:#5b6cff;--gift:#e0565b;--book:#3fae7a}
+  :root{
+    --sky-top:#dce7f4;--sky-mid:#ecf2f9;--sky-bottom:#f7f9fc;
+    --card:rgba(255,255,255,.94);--well:#f3f6fa;--line:#e1e8f0;--field:#fff;--field-line:#cfd9e5;
+    --ink:#1b2838;--muted:#56677b;--faint:#8794a5;
+    --accent:#2d5d8b;--accent-ink:#fff;--accent-soft:#e6eef8;
+    --gift:#a8323f;--gift-soft:#f9e9eb;--book:#2c6a52;--book-soft:#e5f1eb;--wild-soft:#eef1f5;
+    --shadow:0 1px 2px rgba(27,40,56,.05),0 6px 20px rgba(45,93,139,.08);
+    --r:16px;
+  }
   *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--text);font:17px/1.5 Inter,system-ui,sans-serif;padding:24px 16px 64px}
-  main{max-width:600px;margin:0 auto}
-  h1{font-size:30px;margin:0 0 2px} h2{font-size:19px;margin:32px 0 6px} h3{font-size:15px;margin:14px 0 4px;color:var(--muted);font-weight:600}
-  p{margin:6px 0}.muted{color:var(--muted)}.small{font-size:14px}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin:12px 0}
-  textarea{width:100%;min-height:96px;background:var(--field);color:inherit;border:1px solid #2a2e44;border-radius:10px;padding:10px;font:inherit;resize:vertical}
-  button{background:var(--accent);color:#fff;border:0;border-radius:10px;padding:10px 16px;font:inherit;font-weight:600;cursor:pointer}
-  button.quiet{background:none;color:var(--muted);padding:4px 8px;font-weight:500}
-  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:8px}
-  .tag{display:inline-block;font-size:13px;font-weight:600;border-radius:999px;padding:2px 10px;margin-right:6px;vertical-align:2px}
-  .tag.gift{background:#e0565b26;color:#ff8f92}.tag.book{background:#3fae7a26;color:#7ee0b0}.tag.wild{background:#ffffff14;color:var(--muted)}
-  .kind{border-left:3px solid var(--gift);padding-left:12px;margin:14px 0}.kind.book{border-color:var(--book)}
-  .kind strong{font-size:18px}
-  pre{white-space:pre-wrap;font:inherit;margin:2px 0 0}
-  .hint{border-top:1px solid var(--line);padding:8px 0}.hint:first-child{border-top:0}
-  .hidden-note{font-size:13px;color:#c9a6ff}
-  details{background:var(--card);border:1px solid var(--line);border-radius:14px;margin:10px 0}
-  summary{cursor:pointer;padding:14px 16px;font-weight:600;list-style:none}
-  summary::-webkit-details-marker{display:none}
-  summary::after{content:"＋";float:right;color:var(--muted)} details[open] summary::after{content:"－"}
-  details>.body{padding:0 16px 16px}
-  .picker{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:6px;margin:6px 0}
-  .picker label{display:flex;gap:8px;align-items:center;background:var(--field);border:1px solid #2a2e44;border-radius:10px;padding:8px 10px;cursor:pointer}
-  .status{font-size:14px;color:var(--muted)}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;min-height:100vh;color:var(--ink);background:var(--sky-bottom);
+    font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,system-ui,sans-serif}
+  /* The sky is a fixed layer rather than background-attachment:fixed, which iOS ignores. */
+  body::before{content:"";position:fixed;inset:0;z-index:-1;
+    background:linear-gradient(180deg,var(--sky-top) 0%,var(--sky-mid) 45%,var(--sky-bottom) 100%)}
+
+  /* ── Snow: CSS transforms only, so it runs on the compositor and costs the page nothing per frame. ── */
+  #snow{position:fixed;inset:0;overflow:hidden;pointer-events:none;z-index:0}
+  #snow i{position:absolute;top:0;border-radius:50%;background:#fff;
+    box-shadow:0 0 2px rgba(45,93,139,.3);animation:fall linear infinite;will-change:transform}
+  @keyframes fall{
+    0%{transform:translate3d(0,-3vh,0)}
+    50%{transform:translate3d(calc(var(--x) * .5 + var(--s)),50vh,0)}
+    100%{transform:translate3d(var(--x),103vh,0)}
+  }
+  @media (prefers-reduced-motion:reduce){#snow{display:none}}
+
+  .wrap{position:relative;z-index:1;max-width:620px;margin:0 auto;padding:0 16px 72px}
+
+  /* ── Header and nav ── */
+  .top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 2px 10px}
+  .brand{font-weight:700;font-size:17px;letter-spacing:-.01em;display:flex;align-items:center;gap:7px}
+  .brand .flake{color:var(--accent);font-size:18px}
+  .hello{color:var(--muted);font-size:15px}
+  .tabs{position:sticky;top:0;z-index:5;margin:0 -16px 18px;padding:8px 16px;
+    background:rgba(236,242,249,.82);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
+  .tabs .seg{display:flex;gap:4px;padding:4px;background:rgba(255,255,255,.7);border:1px solid var(--line);border-radius:14px}
+  .tabs a{flex:1;text-align:center;padding:8px 4px;border-radius:10px;color:var(--muted);text-decoration:none;
+    font-size:14px;font-weight:600;white-space:nowrap}
+  .tabs a[aria-current=page]{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(27,40,56,.12)}
+
+  /* ── Type ── */
+  h2{font-size:22px;line-height:1.25;margin:0;letter-spacing:-.01em}
+  .intro{color:var(--muted);margin:6px 0 16px;font-size:15px}
+  .section-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .note{display:flex;gap:6px;align-items:center;color:var(--muted);font-size:14px;margin:6px 0 16px}
+  p{margin:0}
+
+  /* ── Cards ── */
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:18px;margin:0 0 14px}
+  .person-head{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:0 0 14px}
+  .person-head h3{font-size:20px;margin:0 auto 0 0;letter-spacing:-.01em}
+  .block+.block{margin-top:16px}
+  .label{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--accent);margin:0 0 8px}
+  .label .aside{margin-left:auto;text-transform:none;letter-spacing:0;font-weight:500;color:var(--faint);font-size:12.5px}
+  .well{background:var(--well);border-radius:12px;padding:12px 14px}
+  .idea+.idea{margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
+  .idea-label{font-size:13px;font-weight:600;color:var(--muted);margin-bottom:3px}
+  .text{white-space:pre-wrap;overflow-wrap:anywhere}
+  .empty{color:var(--faint);font-size:15px}
+  .hints{list-style:none;margin:0;padding:0}
+  .hints li{background:var(--well);border-radius:12px;padding:10px 14px}
+  .hints li+li{margin-top:8px}
+  .by{display:flex;align-items:center;gap:4px;margin-top:4px;color:var(--faint);font-size:13px}
+
+  .tag{display:inline-flex;align-items:center;gap:4px;font-size:12.5px;font-weight:600;border-radius:999px;padding:3px 10px;white-space:nowrap}
+  .tag.gift{background:var(--gift-soft);color:var(--gift)}
+  .tag.book{background:var(--book-soft);color:var(--book)}
+  .tag.wild{background:var(--wild-soft);color:var(--muted)}
+
+  /* Everyone: the same card, collapsed to its header. */
+  details.card{padding:0}
+  details.card summary{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:15px 18px;cursor:pointer;list-style:none}
+  details.card summary::-webkit-details-marker{display:none}
+  details.card summary h3{font-size:18px;margin:0 auto 0 0}
+  details.card summary .count{color:var(--faint);font-size:13.5px}
+  details.card summary::after{content:"";width:8px;height:8px;border-right:2px solid var(--faint);border-bottom:2px solid var(--faint);
+    transform:rotate(45deg);margin:-4px 4px 0 6px;transition:transform .15s}
+  details.card[open] summary::after{transform:rotate(-135deg);margin-top:4px}
+  details.card .body{padding:2px 18px 18px;border-top:1px solid var(--line);padding-top:16px}
+
+  /* ── Controls ── */
+  textarea{display:block;width:100%;min-height:104px;background:var(--field);color:inherit;border:1px solid var(--field-line);
+    border-radius:12px;padding:11px 12px;font:inherit;resize:vertical}
+  textarea:focus{outline:2px solid var(--accent-soft);border-color:var(--accent)}
+  .field+.field{margin-top:16px}
+  .field .hint-text{color:var(--faint);font-size:13.5px;margin:-2px 0 8px}
+  button{font:inherit;cursor:pointer}
+  .btn{background:var(--accent);color:var(--accent-ink);border:0;border-radius:12px;padding:10px 18px;font-weight:600}
+  .btn:disabled{opacity:.55}
+  .btn.outline{background:#fff;color:var(--accent);border:1px solid var(--field-line);padding:7px 14px;font-size:15px}
+  .link{background:none;border:0;color:var(--accent);padding:2px 4px;font-size:13px;font-weight:600}
+  .actions{display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin-top:14px}
+  .status{color:var(--muted);font-size:14px}
+  .lock{color:var(--muted);font-size:13.5px}
+  .add{margin-top:16px;padding-top:16px;border-top:1px solid var(--line)}
+  .add textarea{min-height:72px}
+
+  .choices{display:grid;grid-template-columns:repeat(auto-fill,minmax(128px,1fr));gap:8px}
+  .choices label{display:flex;gap:8px;align-items:center;background:#fff;border:1px solid var(--field-line);border-radius:12px;padding:9px 11px;cursor:pointer;font-size:15px}
+  .choices label:has(input:checked){border-color:var(--accent);background:var(--accent-soft)}
+  .choices input{accent-color:var(--accent);margin:0}
+  .pick+.pick{margin-top:16px}
+
+  /* ── Organizer ── */
+  .meter{height:8px;border-radius:99px;background:var(--well);overflow:hidden;margin:10px 0 12px}
+  .meter span{display:block;height:100%;background:var(--accent);border-radius:99px}
+  .gap{display:flex;gap:8px;align-items:baseline;font-size:15px;margin-top:6px}
+  .rows{padding:4px 0}
+  .giver{display:flex;align-items:center;gap:12px;padding:12px 18px}
+  .giver+.giver{border-top:1px solid var(--line)}
+  .giver .who{font-weight:600;min-width:72px}
+  .giver .what{flex:1;display:flex;flex-wrap:wrap;gap:6px;font-size:14px}
+  .giver.editing{display:block;background:var(--well)}
+
+  .toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,20px);opacity:0;z-index:10;background:var(--ink);color:#fff;
+    padding:9px 16px;border-radius:999px;font-size:14px;font-weight:600;transition:opacity .2s,transform .2s;pointer-events:none}
+  .toast.on{opacity:1;transform:translate(-50%,0)}
+  .loading{color:var(--muted);text-align:center;padding:48px 0}
 </style>
 </head>
 <body>
-<main id="app"><p class="muted">Loading…</p></main>
+<div id="snow" aria-hidden="true"></div>
+<div class="wrap">
+  <header class="top"><div class="brand"><span class="flake" aria-hidden="true">❄</span>Secret Santa</div><div class="hello" id="hello"></div></header>
+  <nav class="tabs" id="tabs" hidden></nav>
+  <main id="view"><p class="loading">Loading…</p></main>
+</div>
+<div class="toast" id="toast" role="status"></div>
 <script>
 const $ = (s, el = document) => el.querySelector(s);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const api = (path, method = "GET", body) =>
   fetch("/ss/api" + path, { method, headers: body ? { "Content-Type": "application/json" } : {}, body: body && JSON.stringify(body) })
     .then((r) => (r.ok ? r.json() : Promise.reject(r)));
+
+// ── Snow. A few dozen dots, three depths by size and opacity, each animated by CSS alone. ──
+(function snow() {
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const n = Math.min(44, Math.max(18, Math.round(innerWidth / 16)));
+  let h = "";
+  for (let i = 0; i < n; i++) {
+    const depth = Math.random(); // 0 = far, 1 = near
+    const size = (1.6 + depth * 3.4).toFixed(1);
+    const dur = (30 - depth * 14 + Math.random() * 6).toFixed(1);
+    h += `<i style="left:${(Math.random() * 100).toFixed(1)}%;width:${size}px;height:${size}px;opacity:${(0.5 + depth * 0.45).toFixed(2)};` +
+      `animation-duration:${dur}s;animation-delay:-${(Math.random() * dur).toFixed(1)}s;` +
+      `--x:${Math.round((Math.random() - 0.5) * 90)}px;--s:${Math.round(8 + Math.random() * 22)}px"></i>`;
+  }
+  $("#snow").innerHTML = h;
+})();
 
 const PROMPTS = {
   gift: { label: "Gift ideas", placeholder: "Hobbies, things you've been eyeing, sizes, favourite colours or brands — and anything you'd rather not get." },
@@ -52,8 +169,18 @@ const PROMPTS = {
 
 let state;
 let editingAssignment = false;
-let editingGiver = null; // organizer: whose assignment is open for editing
+let editingGiver = null;   // organizer: whose assignment is open
 const openPeople = new Set();
+const drafts = new Map();  // unsaved text survives a re-render caused by saving something else
+
+const TABS = [
+  { id: "list", label: "My list" },
+  { id: "me", label: "About me" },
+  { id: "everyone", label: "Everyone" },
+  { id: "organizer", label: "Organizer", organizerOnly: true },
+];
+const tabs = () => TABS.filter((t) => !t.organizerOnly || state.isOrganizer);
+const currentTab = () => { const id = location.hash.slice(1); return tabs().some((t) => t.id === id) ? id : "list"; };
 
 async function load() {
   state = await api("/me");
@@ -62,120 +189,169 @@ async function load() {
 }
 
 const nameOf = (id) => (id === state.me.id ? state.me.name : state.people.find((p) => p.id === id)?.name ?? id);
-const names = (ids) => ids.map((id) => esc(nameOf(id))).join(", ");
+const personOf = (id) => state.people.find((p) => p.id === id);
+const seenBy = () => (state.isOrganizer ? "Only you can see who you have." : "Only you and Anne can see who you have.");
 
-/** Tick-boxes for gifts and one radio for the book. Used for your own assignment and, for an organizer, anybody's. */
-let pickerSeq = 0;
-function picker(giver, a, intro, cancellable) {
-  // A radio group is per document, so two open pickers for one giver (yours, and your row as organizer)
-  // must not share a name or ticking one clears the other.
-  const group = `book-${++pickerSeq}`;
-  const candidates = [state.me, ...state.people].filter((p) => !p.kid && p.id !== giver);
-  return `<div class="card" data-picker="${esc(giver)}">${intro}
-    <h3><span class="tag gift">🎁 Gifts</span>usually two — a couple counts as one</h3>
-    <div class="picker">${candidates.map((p) => `<label><input type="checkbox" data-kind="gift" value="${esc(p.id)}" ${a.gifts.includes(p.id) ? "checked" : ""}>${esc(p.name)}</label>`).join("")}</div>
-    <h3><span class="tag book">📕 Book</span>one person, for the Christmas Eve exchange</h3>
-    <div class="picker">${candidates.map((p) => `<label><input type="radio" name="${group}" data-kind="book" value="${esc(p.id)}" ${a.book === p.id ? "checked" : ""}>${esc(p.name)}</label>`).join("")}</div>
-    <div class="row"><button data-action="save-assignment">Save</button>${cancellable ? `<button class="quiet" data-action="cancel-assignment">Cancel</button>` : ""}<span class="status"></span></div>
-  </div>`;
+function draftArea(key, value, attrs = "") {
+  const v = drafts.has(key) ? drafts.get(key) : value;
+  return `<textarea data-draft="${esc(key)}" ${attrs}>${esc(v)}</textarea>`;
 }
 
-function aboutBlock(about, who) {
-  const g = about.gift.trim(), b = about.book.trim();
-  if (!g && !b) return `<p class="muted small">${esc(who)} hasn't written anything yet.</p>`;
-  return (g ? `<h3>${PROMPTS.gift.label}</h3><pre>${esc(g)}</pre>` : "") + (b ? `<h3>${PROMPTS.book.label}</h3><pre>${esc(b)}</pre>` : "");
-}
+// ── Pieces ──────────────────────────────────────────────────────────────────
 
-function aboutEditor(id, about, intro) {
-  return `<div class="card" data-about="${esc(id)}">${intro}
-    <h3>${PROMPTS.gift.label}</h3><textarea name="gift" placeholder="${esc(PROMPTS.gift.placeholder)}">${esc(about.gift)}</textarea>
-    <h3>${PROMPTS.book.label}</h3><textarea name="book" placeholder="${esc(PROMPTS.book.placeholder)}">${esc(about.book)}</textarea>
-    <div class="row"><button data-action="save-about">Save</button><span class="status"></span></div></div>`;
+function aboutBlock(p) {
+  const g = p.about.gift.trim(), b = p.about.book.trim();
+  const body = !g && !b
+    ? `<p class="empty">${esc(p.name)} hasn't written anything yet.</p>`
+    : (g ? `<div class="idea"><div class="idea-label">${PROMPTS.gift.label}</div><p class="text">${esc(g)}</p></div>` : "") +
+      (b ? `<div class="idea"><div class="idea-label">${PROMPTS.book.label}</div><p class="text">${esc(b)}</p></div>` : "");
+  return `<section class="block"><h4 class="label">${p.kid ? `About ${esc(p.name)}` : `From ${esc(p.name)}`}</h4><div class="well">${body}</div></section>`;
 }
 
 function hintsBlock(p) {
-  const list = p.hints.map((h) => `<div class="hint" data-hint="${h.id}">
-      <pre>${esc(h.text)}</pre>
-      <div class="muted small">— ${esc(h.author)}${h.mine ? ` <button class="quiet" data-action="edit-hint">Edit</button><button class="quiet" data-action="delete-hint">Delete</button>` : ""}</div>
-    </div>`).join("");
-  return `<h3>Hints from everyone else</h3>
-    ${list || `<p class="muted small">No hints yet.</p>`}
-    <div data-add-hint="${esc(p.id)}">
-      <textarea placeholder="Know something ${esc(p.name)} would love? Write it here." style="min-height:64px"></textarea>
-      <div class="row"><button data-action="add-hint">Add hint</button><span class="hidden-note">🔒 Hidden from ${esc(p.name)}. Everyone else can see it.</span><span class="status"></span></div>
-    </div>`;
+  const list = p.hints.map((h) => `<li data-hint="${h.id}"><p class="text">${esc(h.text)}</p>
+      <div class="by">— ${esc(h.author)}${h.mine ? ` · <button class="link" data-action="edit-hint">Edit</button><button class="link" data-action="delete-hint">Delete</button>` : ""}</div></li>`).join("");
+  return `<section class="block"><h4 class="label">Hints from others<span class="aside">🔒 Hidden from ${esc(p.name)}</span></h4>
+    ${list ? `<ul class="hints">${list}</ul>` : `<p class="empty">No hints yet.</p>`}</section>`;
 }
 
-function personBody(p) {
-  return `${aboutBlock(p.about, p.name)}${hintsBlock(p)}`;
+function addHint(p) {
+  return `<div class="add" data-add-hint="${esc(p.id)}">
+    <h4 class="label">Add a hint</h4>
+    ${draftArea("hint:" + p.id, "", `placeholder="A gift or book idea for ${esc(p.name)}…"`)}
+    <div class="actions"><button class="btn" data-action="add-hint">Add hint</button><span class="lock">🔒 ${esc(p.name)} won't see it. Everyone else will.</span><span class="status"></span></div>
+  </div>`;
 }
 
-function assignmentSection() {
+const giftTag = `<span class="tag gift">🎁 Gift</span>`;
+const bookTag = `<span class="tag book">📕 Book exchange</span>`;
+const wildTag = `<span class="tag wild">Wild card</span>`;
+
+/** Tick-boxes for gifts, one radio for the book. For your own assignment and, for an organizer, anybody's. */
+let pickerSeq = 0;
+function picker(giver, a, cancellable) {
+  const group = `book-${++pickerSeq}`; // radio groups are per document; two open pickers must not share one
+  const candidates = [state.me, ...state.people].filter((p) => !p.kid && p.id !== giver);
+  const opt = (type, kind, p, on) =>
+    `<label><input type="${type}" ${type === "radio" ? `name="${group}"` : ""} data-kind="${kind}" value="${esc(p.id)}" ${on ? "checked" : ""}>${esc(p.name)}</label>`;
+  return `<div data-picker="${esc(giver)}">
+    <div class="pick"><h4 class="label">🎁 Gifts</h4><div class="choices">${candidates.map((p) => opt("checkbox", "gift", p, a.gifts.includes(p.id))).join("")}</div></div>
+    <div class="pick"><h4 class="label">📕 Book exchange</h4><div class="choices">${candidates.map((p) => opt("radio", "book", p, a.book === p.id)).join("")}</div></div>
+    <div class="actions"><button class="btn" data-action="save-assignment">Save</button>${cancellable ? `<button class="link" data-action="cancel-assignment">Cancel</button>` : ""}<span class="status"></span></div>
+  </div>`;
+}
+
+// ── Tabs ────────────────────────────────────────────────────────────────────
+
+function listTab() {
   const a = state.assignment;
   const empty = !a.gifts.length && !a.book;
   if (empty || editingAssignment) {
-    return `<h2>Your assignment</h2>` + picker(state.me.id, a,
-      `<p class="muted small">Anne texted you who you've got. Tick them here so their notes and hints are in one place — only you${state.isOrganizer ? "" : " and Anne"} can see this.</p>`, !empty);
+    return `<h2>Who do you have?</h2><p class="intro">Tick the people from Anne's text. ${seenBy()}</p>
+      <div class="card">${picker(state.me.id, a, !empty)}</div>`;
   }
-  const card = (id) => { const p = state.people.find((x) => x.id === id); return p ? `<div class="card"><strong>${esc(p.name)}</strong>${personBody(p)}</div>` : ""; };
-  return `<h2>Your assignment</h2><p class="muted small">Only you${state.isOrganizer ? "" : " and Anne"} can see this. <button class="quiet" data-action="edit-assignment">Change</button></p>
-    ${a.gifts.length ? `<div class="kind"><span class="tag gift">🎁 Gifts</span><strong>${names(a.gifts)}</strong></div>${a.gifts.map(card).join("")}` : ""}
-    ${a.book ? `<div class="kind book"><span class="tag book">📕 Book</span><strong>${esc(nameOf(a.book))}</strong><p class="muted small">For the Christmas Eve book exchange.</p></div>${card(a.book)}` : ""}`;
+  const ids = [...a.gifts, ...(a.book && !a.gifts.includes(a.book) ? [a.book] : [])];
+  const cards = ids.map((id) => {
+    const p = personOf(id);
+    if (!p) return "";
+    return `<article class="card"><header class="person-head"><h3>${esc(p.name)}</h3>${a.gifts.includes(id) ? giftTag : ""}${a.book === id ? bookTag : ""}</header>
+      ${aboutBlock(p)}${hintsBlock(p)}</article>`;
+  }).join("");
+  return `<div class="section-head"><h2>You're buying for</h2><button class="btn outline" data-action="edit-assignment">Change</button></div>
+    <p class="note">🔒 ${seenBy()}</p>${cards}`;
 }
 
-/** Anne's view: every giver, what's entered, and who isn't covered yet. */
-function organizerSection() {
-  const givers = state.organizer.givers;
-  const adults = givers.map((g) => g.id);
-  const books = new Set(givers.map((g) => g.book).filter(Boolean));
-  const gifted = new Set(givers.flatMap((g) => g.gifts));
-  const noBook = adults.filter((id) => !books.has(id));
-  const noGift = adults.filter((id) => !gifted.has(id));
-  const entered = givers.filter((g) => g.gifts.length || g.book).length;
+function aboutEditor(id, about, heading) {
+  return `<div class="card" data-about="${esc(id)}">${heading}
+    <div class="field"><h4 class="label">${PROMPTS.gift.label}</h4>${draftArea(`about:${id}:gift`, about.gift, `name="gift" placeholder="${esc(PROMPTS.gift.placeholder)}"`)}</div>
+    <div class="field"><h4 class="label">${PROMPTS.book.label}</h4>${draftArea(`about:${id}:book`, about.book, `name="book" placeholder="${esc(PROMPTS.book.placeholder)}"`)}</div>
+    <div class="actions"><button class="btn" data-action="save-about">Save</button><span class="status"></span></div></div>`;
+}
 
-  let h = `<h2>Organizer</h2><p class="muted small">Only you can see this. Enter what you sent everyone and it shows up as their assignment — they can still change their own.</p>`;
-  h += `<div class="card small"><strong>${entered} of ${givers.length}</strong> entered.
-    ${noGift.length ? `<p><span class="tag gift">🎁</span>Nobody's buying for ${names(noGift)} yet.</p>` : ""}
-    ${noBook.length ? `<p><span class="tag book">📕</span>Nobody has ${names(noBook)} for a book yet.</p>` : ""}</div>`;
-  for (const g of givers) {
-    if (editingGiver === g.id) { h += picker(g.id, g, `<p><strong>${esc(g.name)}</strong> is buying for…</p>`, true); continue; }
-    const summary = g.gifts.length || g.book
-      ? `${g.gifts.length ? `<span class="tag gift">🎁</span>${names(g.gifts)}` : ""}${g.book ? ` <span class="tag book">📕</span>${esc(nameOf(g.book))}` : ""}`
-      : `<span class="muted">Not entered</span>`;
-    h += `<div class="card"><div class="row" style="margin:0;justify-content:space-between"><strong>${esc(g.name)}</strong><button class="quiet" data-action="edit-giver" data-giver="${esc(g.id)}">Edit</button></div><div class="small">${summary}</div></div>`;
+function meTab() {
+  let h = `<h2>About me</h2><p class="intro">Help whoever has you find something good. Everyone can read this.</p>`;
+  h += aboutEditor(state.me.id, state.me.about, "");
+  for (const k of state.people.filter((p) => p.kid && p.canEdit)) {
+    h += aboutEditor(k.id, k.about, `<header class="person-head"><h3>${esc(k.name)}</h3>${wildTag}</header>
+      <p class="intro" style="margin-top:-6px">You can write this for ${esc(k.name)}. Gifts for ${esc(k.name)} are optional.</p>`);
   }
   return h;
 }
 
-function render() {
-  const mine = new Set([...state.assignment.gifts, state.assignment.book].filter(Boolean));
-  const kidsIParent = state.people.filter((p) => p.kid && p.canEdit);
-  const others = state.people.filter((p) => !mine.has(p.id) || editingAssignment);
+function everyoneTab() {
+  const a = state.assignment;
+  const rows = state.people.map((p) => {
+    const tags = (a.gifts.includes(p.id) ? giftTag : "") + (a.book === p.id ? bookTag : "") + (p.kid ? wildTag : "");
+    const count = p.hints.length ? `<span class="count">${p.hints.length} hint${p.hints.length === 1 ? "" : "s"}</span>` : "";
+    return `<details class="card" data-person="${esc(p.id)}"><summary><h3>${esc(p.name)}</h3>${tags}${count}</summary>
+      <div class="body">${aboutBlock(p)}${hintsBlock(p)}${addHint(p)}</div></details>`;
+  }).join("");
+  return `<h2>Everyone</h2><p class="intro">See what people want, and leave a hint for anyone. A hint is hidden from the person it's about.</p>${rows}`;
+}
 
-  let h = `<h1>Secret Santa</h1><p class="muted">Hi ${esc(state.me.name)}.</p>`;
-  h += assignmentSection();
-  h += `<h2>About you</h2>` + aboutEditor(state.me.id, state.me.about,
-    `<p class="muted small">Help whoever has you. Everyone can read this.</p>`);
-  for (const k of kidsIParent) {
-    h += aboutEditor(k.id, k.about, `<p><strong>${esc(k.name)}</strong> <span class="tag wild">wild card</span></p><p class="muted small">Gifts and books for ${esc(k.name)} are welcome but optional.</p>`);
-  }
-  h += `<h2>Everyone</h2><p class="muted small">Read what people wrote about themselves, and leave hints for anyone. A hint is hidden from the person it's about.</p>`;
-  const everyone = others.map((p) => `<details data-person="${esc(p.id)}"><summary>${esc(p.name)}${p.kid ? ` <span class="tag wild">wild card</span>` : ""}${p.hints.length ? ` <span class="muted small">· ${p.hints.length} hint${p.hints.length === 1 ? "" : "s"}</span>` : ""}</summary><div class="body">${personBody(p)}</div></details>`).join("");
-  h += everyone;
-  if (state.organizer) h += organizerSection();
-  $("#app").innerHTML = h;
-  // A save re-renders the page; keep whoever was open, open.
+function organizerTab() {
+  const givers = state.organizer.givers;
+  const adults = givers.map((g) => g.id);
+  const books = new Set(givers.map((g) => g.book).filter(Boolean));
+  const gifted = new Set(givers.flatMap((g) => g.gifts));
+  const noGift = adults.filter((id) => !gifted.has(id));
+  const noBook = adults.filter((id) => !books.has(id));
+  const entered = givers.filter((g) => g.gifts.length || g.book).length;
+  const list = (ids) => ids.map((id) => esc(nameOf(id))).join(", ");
+
+  let h = `<h2>Organizer</h2><p class="intro">What everyone has ticked. You can change anybody's, and they can still change their own. Only you can see this.</p>`;
+  h += `<div class="card"><h4 class="label">Progress</h4><p><strong>${entered} of ${givers.length}</strong> people have an assignment entered.</p>
+    <div class="meter"><span style="width:${Math.round((entered / givers.length) * 100)}%"></span></div>
+    ${noGift.length ? `<p class="gap">${giftTag.replace("Gift", "No gift yet")}<span>${list(noGift)}</span></p>` : ""}
+    ${noBook.length ? `<p class="gap">${bookTag.replace("Book exchange", "No book yet")}<span>${list(noBook)}</span></p>` : ""}
+    ${!noGift.length && !noBook.length ? `<p class="gap">Everyone has a gift and a book coming. 🎄</p>` : ""}</div>`;
+  h += `<div class="card rows" style="padding:0">` + givers.map((g) => {
+    if (editingGiver === g.id) return `<div class="giver editing"><p style="margin-bottom:12px"><strong>${esc(g.name)}</strong> is buying for…</p>${picker(g.id, g, true)}</div>`;
+    const what = g.gifts.length || g.book
+      ? g.gifts.map((id) => `<span class="tag gift">🎁 ${esc(nameOf(id))}</span>`).join("") + (g.book ? `<span class="tag book">📕 ${esc(nameOf(g.book))}</span>` : "")
+      : `<span class="empty" style="font-size:14px">Nothing yet</span>`;
+    return `<div class="giver"><span class="who">${esc(g.name)}</span><span class="what">${what}</span><button class="link" data-action="edit-giver" data-giver="${esc(g.id)}">Edit</button></div>`;
+  }).join("") + `</div>`;
+  return h;
+}
+
+function render() {
+  const tab = currentTab();
+  $("#hello").textContent = `Hi, ${state.me.name}`;
+  const nav = $("#tabs");
+  nav.hidden = false;
+  nav.innerHTML = `<div class="seg">${tabs().map((t) => `<a href="#${t.id}" ${t.id === tab ? `aria-current="page"` : ""}>${t.label}</a>`).join("")}</div>`;
+  $("#view").innerHTML = { list: listTab, me: meTab, everyone: everyoneTab, organizer: organizerTab }[tab]();
   document.querySelectorAll("details[data-person]").forEach((d) => { if (openPeople.has(d.dataset.person)) d.open = true; });
 }
 
-async function run(button, status, work) {
-  button.disabled = true;
-  if (status) status.textContent = "Saving…";
-  try { await work(); await load(); }
-  catch { if (status) status.textContent = "Couldn't save. Try again."; button.disabled = false; }
+addEventListener("hashchange", () => { if (state) { render(); scrollTo(0, 0); } });
+
+function toast(text) {
+  const t = $("#toast");
+  t.textContent = text;
+  t.classList.add("on");
+  clearTimeout(toast.timer);
+  toast.timer = setTimeout(() => t.classList.remove("on"), 1800);
 }
 
-$("#app").addEventListener("click", async (e) => {
+async function run(button, status, work, { clear = [], done = "Saved" } = {}) {
+  button.disabled = true;
+  if (status) status.textContent = "Saving…";
+  try {
+    await work();
+    clear.forEach((k) => drafts.delete(k));
+    await load();
+    toast(done);
+  } catch {
+    if (status) status.textContent = "Couldn't save. Try again.";
+    button.disabled = false;
+  }
+}
+
+$("#view").addEventListener("input", (e) => { if (e.target.dataset.draft) drafts.set(e.target.dataset.draft, e.target.value); });
+
+$("#view").addEventListener("click", async (e) => {
   const button = e.target.closest("[data-action]");
   if (!button) return;
   const action = button.dataset.action;
@@ -184,8 +360,7 @@ $("#app").addEventListener("click", async (e) => {
   if (action === "edit-assignment") { editingAssignment = true; return render(); }
   if (action === "edit-giver") { editingGiver = button.dataset.giver; return render(); }
   if (action === "cancel-assignment") {
-    if (button.closest("[data-picker]").dataset.picker === state.me.id && !editingGiver) editingAssignment = false;
-    else editingGiver = null;
+    if (currentTab() === "organizer") editingGiver = null; else editingAssignment = false;
     return render();
   }
   if (action === "save-assignment") {
@@ -195,7 +370,7 @@ $("#app").addEventListener("click", async (e) => {
     const book = box.querySelector("input[data-kind=book]:checked")?.value ?? null;
     if (book && gifts.includes(book) && !confirm(`${nameOf(book)} is ticked for a gift and the book. Save anyway?`)) return;
     // Your own goes through your own route even if you're the organizer; anybody else's through theirs.
-    const own = giver === state.me.id && !editingGiver;
+    const own = currentTab() !== "organizer";
     return run(button, status, async () => {
       await api(own ? "/assignment" : `/assignments/${giver}`, "PUT", { gifts, book });
       if (own) editingAssignment = false; else editingGiver = null;
@@ -203,24 +378,27 @@ $("#app").addEventListener("click", async (e) => {
   }
   if (action === "save-about") {
     const card = button.closest("[data-about]");
-    return run(button, status, () => api("/about", "PUT", { person: card.dataset.about, gift: $("[name=gift]", card).value, book: $("[name=book]", card).value }));
+    const id = card.dataset.about;
+    return run(button, status, () => api("/about", "PUT", { person: id, gift: $("[name=gift]", card).value, book: $("[name=book]", card).value }),
+      { clear: [`about:${id}:gift`, `about:${id}:book`] });
   }
   if (action === "add-hint") {
     const box = button.closest("[data-add-hint]");
     const text = $("textarea", box).value.trim();
     if (!text) return;
-    return run(button, status, () => api("/hints", "POST", { subject: box.dataset.addHint, text }));
+    return run(button, status, () => api("/hints", "POST", { subject: box.dataset.addHint, text }),
+      { clear: ["hint:" + box.dataset.addHint], done: "Hint added" });
   }
   const hint = button.closest("[data-hint]");
   if (action === "edit-hint") {
-    const current = $("pre", hint).textContent;
+    const current = $(".text", hint).textContent;
     const text = prompt("Edit your hint", current);
     if (text === null || !text.trim() || text === current) return;
     return run(button, null, () => api(`/hints/${hint.dataset.hint}`, "PUT", { text }));
   }
   if (action === "delete-hint") {
     if (!confirm("Delete this hint?")) return;
-    return run(button, null, () => api(`/hints/${hint.dataset.hint}`, "DELETE", {}));
+    return run(button, null, () => api(`/hints/${hint.dataset.hint}`, "DELETE", {}), { done: "Hint deleted" });
   }
 });
 
@@ -229,7 +407,11 @@ document.addEventListener("toggle", (e) => {
   if (d) d.open ? openPeople.add(d.dataset.person) : openPeople.delete(d.dataset.person);
 }, true);
 
-load().catch(() => { $("#app").innerHTML = "<p>Something went wrong. Reopen the link from the Majestic app.</p>"; });
+load().catch((r) => {
+  $("#view").innerHTML = `<div class="card" style="text-align:center;margin-top:24px">
+    <p style="font-weight:600;margin-bottom:6px">${r && r.status === 403 ? "Your link has expired" : "Something went wrong"}</p>
+    <p class="empty">Reopen Secret Santa from the trip board in the Majestic app.</p></div>`;
+});
 </script>
 </body>
 </html>
