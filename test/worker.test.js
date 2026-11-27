@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createHandler } from "../src/worker.js";
 import { signKey } from "../src/lib/miniappkey.js";
+import { DETAIL_FIELDS, MAX_DETAIL, readDetails } from "../src/details.js";
 
 const secret = "s3cret-s3cret-s3cret-s3cret-0123";
 const now = 1_000_000;
@@ -18,18 +19,18 @@ function mem() {
   const about = {}; const assigns = {}; let hints = []; let next = 1;
   return {
     getAbout: async () => structuredClone(about),
-    setAbout: async (id, gift, book) => { about[id] = { gift, book }; },
+    setAbout: async (id, gift, book, details, t) => { about[id] = { gift, book, details: details ?? about[id]?.details ?? {}, updated: t }; },
     getAssignment: async (g) => [...(assigns[g] || [])],
     getAllAssignments: async () => Object.entries(assigns).flatMap(([giver, rows]) => rows.map((r) => ({ giver, ...r }))),
     setAssignment: async (g, rows) => { assigns[g] = rows; },
     getHints: async () => hints.map((h) => ({ ...h })),
-    addHint: async (subject, author, text) => { const id = next++; hints.push({ id, subject, author, text }); return id; },
-    updateHint: async (id, author, text) => { const h = hints.find((x) => x.id === id && x.author === author); if (h) h.text = text; return h ? 1 : 0; },
+    addHint: async (subject, author, text, t) => { const id = next++; hints.push({ id, subject, author, text, updated: t }); return id; },
+    updateHint: async (id, author, text, t) => { const h = hints.find((x) => x.id === id && x.author === author); if (h) { h.text = text; h.updated = t; } return h ? 1 : 0; },
     deleteHint: async (id, author) => { const n = hints.length; hints = hints.filter((x) => !(x.id === id && x.author === author)); return n - hints.length; },
   };
 }
 const env = { MINIAPP_KEY_SECRET: secret, ASSETS: { fetch: async (r) => new Response("asset:" + new URL(r.url).pathname) } };
-const mk = () => { const s = mem(); return createHandler({ roster, now: () => now, store: () => s }); };
+const mk = (clock = () => now) => { const s = mem(); return createHandler({ roster, now: clock, store: () => s }); };
 const key = (uid, o = {}) => signKey({ uid, name: uid, trip: "t1", app: "ss", exp: now + 3600, ...o }, secret);
 const req = (path, init) => new Request("https://ericarmstrong.tech" + path, init);
 
@@ -163,8 +164,8 @@ test("assignments refuse yourself, kids, strangers, repeats and too many", async
 test("what you write about yourself is what everybody else reads", async () => {
   const h = mk(); const tom = await session(h, "tom"); const anne = await session(h, "anne");
   assert.equal((await api(h, tom, "/about", "PUT", { person: "tom", gift: "fly fishing", book: "sea stories" })).status, 200);
-  assert.deepEqual((await me(h, tom)).me.about, { gift: "fly fishing", book: "sea stories" });
-  assert.deepEqual(personIn(await me(h, anne), "tom").about, { gift: "fly fishing", book: "sea stories" });
+  assert.deepEqual((await me(h, tom)).me.about, { gift: "fly fishing", book: "sea stories", details: {}, updated: now });
+  assert.deepEqual(personIn(await me(h, anne), "tom").about, { gift: "fly fishing", book: "sea stories", details: {}, updated: now });
 });
 
 test("a kid's about is written by either parent and nobody else", async () => {
@@ -234,6 +235,44 @@ test("the subject can't reach a hint about them by id either", async () => {
   assert.equal(personIn(await me(h, eric), "tom").hints.length, 1);
 });
 
+// ── What's new: timestamps the page compares against its last visit ───────────
+
+test("/me carries server time and when each hint and about last changed", async () => {
+  let t = now;
+  const h = mk(() => t); const eric = await session(h, "eric"); const anne = await session(h, "anne");
+  await api(h, eric, "/hints", "POST", { subject: "tom", text: "reel" });
+  t = now + 50;
+  await api(h, (await session(h, "tom")), "/about", "PUT", { person: "tom", gift: "fly fishing", book: "" });
+  t = now + 100;
+  const view = await me(h, anne);
+  assert.equal(view.now, now + 100);
+  assert.equal(personIn(view, "tom").hints[0].updated, now);
+  assert.equal(personIn(view, "tom").about.updated, now + 50);
+  assert.equal(personIn(view, "luisa").about.updated, 0, "nobody has written it yet");
+});
+
+test("editing a hint moves its time; another author's hint keeps its own", async () => {
+  let t = now;
+  const h = mk(() => t); const eric = await session(h, "eric"); const rob = await session(h, "rob"); const anne = await session(h, "anne");
+  const { id } = await (await api(h, eric, "/hints", "POST", { subject: "tom", text: "reel" })).json();
+  await api(h, rob, "/hints", "POST", { subject: "tom", text: "waders" });
+  t = now + 60;
+  await api(h, eric, `/hints/${id}`, "PUT", { text: "a better reel" });
+  const hints = personIn(await me(h, anne), "tom").hints;
+  assert.deepEqual(hints.map((x) => [x.text, x.updated]), [["a better reel", now + 60], ["waders", now]]);
+});
+
+test("timestamps give the subject no trace of hints about them", async () => {
+  let t = now;
+  const h = mk(() => t); const eric = await session(h, "eric"); const tom = await session(h, "tom");
+  t = now + 777;
+  await api(h, eric, "/hints", "POST", { subject: "tom", text: "reel" });
+  const tomView = await me(h, tom);
+  // Only the server clock may carry that second; nothing about any person can.
+  assert.equal(tomView.now, now + 777);
+  assert.ok(!JSON.stringify({ me: tomView.me, people: tomView.people }).includes(String(now + 777)));
+});
+
 test("the draw is gone", async () => {
   const h = mk(); const eric = await session(h, "eric");
   assert.equal((await api(h, eric, "/draw", "POST", {})).status, 404);
@@ -286,4 +325,72 @@ test("being the organizer doesn't reveal hints about yourself", async () => {
   await api(h, eric, "/hints", "POST", { subject: "anne", text: "wants a chef's knife" });
   assert.ok(!JSON.stringify(await me(h, anne)).includes("chef"));
   assert.ok(!JSON.stringify(await (await api(h, anne, "/assignments")).json()).includes("chef"));
+});
+
+// ── Sizes and favourites ─────────────────────────────────────────────────────
+
+test("sizes are read by everybody, like the rest of what you write about yourself", async () => {
+  const h = mk(); const tom = await session(h, "tom"); const anne = await session(h, "anne");
+  const res = await api(h, tom, "/about", "PUT", { person: "tom", gift: "", book: "", details: { top: " L ", shoes: "US 11", avoid: "no nuts" } });
+  assert.equal(res.status, 200);
+  const want = { top: "L", shoes: "US 11", avoid: "no nuts" };
+  assert.deepEqual((await me(h, tom)).me.about.details, want);
+  assert.deepEqual(personIn(await me(h, anne), "tom").about.details, want);
+});
+
+test("a blank size is dropped, so clearing one is the same as never filling it in", async () => {
+  const h = mk(); const tom = await session(h, "tom");
+  await api(h, tom, "/about", "PUT", { person: "tom", gift: "", book: "", details: { top: "L", pants: "32" } });
+  await api(h, tom, "/about", "PUT", { person: "tom", gift: "", book: "", details: { top: "L", pants: "   " } });
+  assert.deepEqual((await me(h, tom)).me.about.details, { top: "L" });
+});
+
+test("a page that sends no sizes keeps the ones already saved", async () => {
+  const h = mk(); const tom = await session(h, "tom");
+  await api(h, tom, "/about", "PUT", { person: "tom", gift: "a", book: "", details: { shoes: "US 11" } });
+  // An older copy of the page, open in a tab from before sizes existed.
+  assert.equal((await api(h, tom, "/about", "PUT", { person: "tom", gift: "b", book: "" })).status, 200);
+  const about = (await me(h, tom)).me.about;
+  assert.equal(about.gift, "b");
+  assert.deepEqual(about.details, { shoes: "US 11" });
+});
+
+test("a parent fills in a kid's sizes; nobody else can", async () => {
+  const h = mk(); const tom = await session(h, "tom"); const eric = await session(h, "eric");
+  assert.equal((await api(h, tom, "/about", "PUT", { person: "margot", gift: "", book: "", details: { shoes: "kids 13" } })).status, 200);
+  assert.equal((await api(h, eric, "/about", "PUT", { person: "margot", gift: "", book: "", details: { shoes: "kids 2" } })).status, 403);
+  assert.deepEqual(personIn(await me(h, eric), "margot").about.details, { shoes: "kids 13" });
+});
+
+test("sizes refuse unknown fields, non-strings, runaway text and non-objects", async () => {
+  const h = mk(); const tom = await session(h, "tom");
+  const put = (details) => api(h, tom, "/about", "PUT", { person: "tom", gift: "", book: "", details });
+  for (const d of [{ hat: "7" }, { top: 12 }, { top: "x".repeat(MAX_DETAIL + 1) }, ["L"], "L", null, { __proto__: null, constructor: "x" }]) {
+    assert.equal((await put(d)).status, 400, JSON.stringify(d));
+  }
+  assert.equal((await put({ top: "x".repeat(MAX_DETAIL) })).status, 200);
+  // Nothing refused above was stored.
+  assert.deepEqual(Object.keys((await me(h, tom)).me.about.details), ["top"]);
+});
+
+test("/me hands the page the field list it draws the form from", async () => {
+  const h = mk(); const tom = await session(h, "tom");
+  const view = await me(h, tom);
+  assert.deepEqual(view.detailFields.map((f) => f.key), DETAIL_FIELDS.map((f) => f.key));
+  assert.deepEqual(personIn(view, "luisa").about.details, {}, "nobody has written it yet");
+});
+
+test("a stored column is read defensively", () => {
+  assert.deepEqual(readDetails('{"top":"M","bogus":"x","shoes":7,"pants":"  "}'), { top: "M" });
+  assert.deepEqual(readDetails("not json"), {});
+  assert.deepEqual(readDetails('["M"]'), {});
+  assert.deepEqual(readDetails(null), {});
+});
+
+test("every field has a unique key, a group the page knows, and a label", () => {
+  assert.equal(new Set(DETAIL_FIELDS.map((f) => f.key)).size, DETAIL_FIELDS.length);
+  for (const f of DETAIL_FIELDS) {
+    assert.ok(["sizes", "likes"].includes(f.group), f.key);
+    assert.ok(f.label && f.placeholder, f.key);
+  }
 });

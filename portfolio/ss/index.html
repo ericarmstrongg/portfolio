@@ -79,6 +79,9 @@
   .tag.gift{background:var(--gift-soft);color:var(--gift)}
   .tag.book{background:var(--book-soft);color:var(--book)}
   .tag.wild{background:var(--wild-soft);color:var(--muted)}
+  .tag.new{background:var(--accent-soft);color:var(--accent);font-size:11.5px;padding:2px 8px}
+  .news{background:var(--accent-soft);color:var(--accent);border-radius:12px;padding:10px 14px;margin:-6px 0 16px;font-size:14.5px;font-weight:500}
+  details.card.has-new summary h3::after{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--gift);margin-left:7px;vertical-align:middle}
 
   /* Everyone: the same card, collapsed to its header. */
   details.card{padding:0}
@@ -105,6 +108,24 @@
   .actions{display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin-top:14px}
   .status{color:var(--muted);font-size:14px}
   .lock{color:var(--muted);font-size:13.5px}
+  /* Sizes and favourites: one field per line, with tap-to-fill chips under the letter sizes. */
+  input.detail{display:block;width:100%;background:var(--field);color:inherit;border:1px solid var(--field-line);
+    border-radius:10px;padding:9px 11px;font:inherit;font-size:16px}
+  input.detail::placeholder{color:var(--faint)}
+  input.detail:focus{outline:2px solid var(--accent-soft);border-color:var(--accent)}
+  .details{display:grid;grid-template-columns:1fr;gap:14px}
+  .details label{display:block;font-size:13.5px;font-weight:600;color:var(--muted);margin:0 0 4px}
+  .chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+  .chips button{border:1px solid var(--field-line);background:#fff;color:var(--muted);border-radius:999px;padding:5px 11px;font-size:13.5px;font-weight:600;min-width:38px}
+  .chips button[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:#fff}
+  .subhead{font-size:15px;font-weight:700;margin:22px 0 4px;padding-top:18px;border-top:1px solid var(--line)}
+  .subhead+.hint-text{color:var(--faint);font-size:13.5px;margin:0 0 12px}
+  /* Read side: label over value, in a grid, so a size is findable at a glance in a shop. */
+  .facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px 14px}
+  .facts .k{font-size:12.5px;font-weight:600;color:var(--muted)}
+  .facts .v{font-size:15.5px;font-weight:600;overflow-wrap:anywhere}
+  .facts.wide{grid-template-columns:1fr}
+  .facts.wide .v{font-weight:500}
   .add{margin-top:16px;padding-top:16px;border-top:1px solid var(--line)}
   .add textarea{min-height:72px}
 
@@ -163,7 +184,7 @@ const api = (path, method = "GET", body) =>
 })();
 
 const PROMPTS = {
-  gift: { label: "Gift ideas", placeholder: "Hobbies, things you've been eyeing, sizes, favourite colours or brands — and anything you'd rather not get." },
+  gift: { label: "Gift ideas", placeholder: "Hobbies, things you've been eyeing, a wish-list link — anything that would make a good gift." },
   book: { label: "Book ideas", placeholder: "What you like to read, a few favourites, authors or genres you'd try — and what you've already read, so nobody repeats it." },
 };
 
@@ -172,6 +193,22 @@ let editingAssignment = false;
 let editingGiver = null;   // organizer: whose assignment is open
 const openPeople = new Set();
 const drafts = new Map();  // unsaved text survives a re-render caused by saving something else
+
+// ── What's new since your last visit ──
+// `since` is the server time of your previous visit, read ONCE when the page opens. It must not be re-read on later
+// load() calls: load() runs again after every save, and re-reading then would wipe the badges mid-visit. The mark is
+// written when you leave (tab hidden or page closed) as the server time of the latest /me, so your own saves are
+// always older than it. No stored mark (first visit, storage cleared or blocked) means nothing is shown as new.
+let since;
+const seenKey = () => "ss:seen:" + state.me.id;
+function readSeen() { try { const v = Number(localStorage.getItem(seenKey())); return v > 0 ? v : null; } catch { return null; } }
+function writeSeen() { if (!state) return; try { localStorage.setItem(seenKey(), String(state.now)); } catch {} }
+addEventListener("pagehide", writeSeen);
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") writeSeen(); });
+const isNewHint = (h) => !!since && !h.mine && h.updated > since;
+const hasDetails = (about) => Object.keys(about.details || {}).length > 0;
+const isNewAbout = (p) => !!since && p.about.updated > since && !!(p.about.gift.trim() || p.about.book.trim() || hasDetails(p.about));
+const newHints = (p) => p.hints.filter(isNewHint).length;
 
 const TABS = [
   { id: "list", label: "My list" },
@@ -184,6 +221,7 @@ const currentTab = () => { const id = location.hash.slice(1); return tabs().some
 
 async function load() {
   state = await api("/me");
+  if (since === undefined) since = readSeen();
   state.organizer = state.isOrganizer ? await api("/assignments") : null;
   render();
 }
@@ -197,20 +235,36 @@ function draftArea(key, value, attrs = "") {
   return `<textarea data-draft="${esc(key)}" ${attrs}>${esc(v)}</textarea>`;
 }
 
+function draftInput(key, value, attrs = "") {
+  const v = drafts.has(key) ? drafts.get(key) : value;
+  return `<input class="detail" data-draft="${esc(key)}" value="${esc(v)}" ${attrs}>`;
+}
+const fieldsIn = (group) => state.detailFields.filter((f) => f.group === group);
+
 // ── Pieces ──────────────────────────────────────────────────────────────────
 
+/** Sizes in a grid, favourites one per line — or nothing at all when neither has anything in it. */
+function factsBlock(details, group, title, wide) {
+  const rows = fieldsIn(group).filter((f) => details[f.key]);
+  if (!rows.length) return "";
+  return `<div class="idea"><div class="idea-label">${title}</div><div class="facts${wide ? " wide" : ""}">${rows
+    .map((f) => `<div><div class="k">${esc(f.label)}</div><div class="v">${esc(details[f.key])}</div></div>`).join("")}</div></div>`;
+}
+
 function aboutBlock(p) {
-  const g = p.about.gift.trim(), b = p.about.book.trim();
-  const body = !g && !b
+  const g = p.about.gift.trim(), b = p.about.book.trim(), d = p.about.details || {};
+  const body = !g && !b && !hasDetails(p.about)
     ? `<p class="empty">${esc(p.name)} hasn't written anything yet.</p>`
     : (g ? `<div class="idea"><div class="idea-label">${PROMPTS.gift.label}</div><p class="text">${esc(g)}</p></div>` : "") +
+      factsBlock(d, "sizes", "Sizes", false) +
+      factsBlock(d, "likes", "Good to know", true) +
       (b ? `<div class="idea"><div class="idea-label">${PROMPTS.book.label}</div><p class="text">${esc(b)}</p></div>` : "");
-  return `<section class="block"><h4 class="label">${p.kid ? `About ${esc(p.name)}` : `From ${esc(p.name)}`}</h4><div class="well">${body}</div></section>`;
+  return `<section class="block"><h4 class="label">${p.kid ? `About ${esc(p.name)}` : `From ${esc(p.name)}`}${isNewAbout(p) ? `<span class="tag new" style="margin-left:auto">Updated</span>` : ""}</h4><div class="well">${body}</div></section>`;
 }
 
 function hintsBlock(p) {
   const list = p.hints.map((h) => `<li data-hint="${h.id}"><p class="text">${esc(h.text)}</p>
-      <div class="by">— ${esc(h.author)}${h.mine ? ` · <button class="link" data-action="edit-hint">Edit</button><button class="link" data-action="delete-hint">Delete</button>` : ""}</div></li>`).join("");
+      <div class="by">— ${esc(h.author)}${isNewHint(h) ? ` <span class="tag new">New</span>` : ""}${h.mine ? ` · <button class="link" data-action="edit-hint">Edit</button><button class="link" data-action="delete-hint">Delete</button>` : ""}</div></li>`).join("");
   return `<section class="block"><h4 class="label">Hints from others<span class="aside">🔒 Hidden from ${esc(p.name)}</span></h4>
     ${list ? `<ul class="hints">${list}</ul>` : `<p class="empty">No hints yet.</p>`}</section>`;
 }
@@ -257,14 +311,38 @@ function listTab() {
     return `<article class="card"><header class="person-head"><h3>${esc(p.name)}</h3>${a.gifts.includes(id) ? giftTag : ""}${a.book === id ? bookTag : ""}</header>
       ${aboutBlock(p)}${hintsBlock(p)}</article>`;
   }).join("");
+  const news = ids.map(personOf).filter(Boolean).flatMap((p) => {
+    const n = newHints(p);
+    return [...(n ? [`${n} new hint${n === 1 ? "" : "s"} for ${esc(p.name)}`] : []), ...(isNewAbout(p) ? [`new ideas from ${esc(p.name)}`] : [])];
+  });
+  const newsLine = news.length ? `<p class="news">✨ Since your last visit: ${news.join(" · ")}</p>` : "";
   return `<div class="section-head"><h2>You're buying for</h2><button class="btn outline" data-action="edit-assignment">Change</button></div>
-    <p class="note">🔒 ${seenBy()}</p>${cards}`;
+    <p class="note">🔒 ${seenBy()}</p>${newsLine}${cards}`;
+}
+
+const detailKey = (id, key) => `about:${id}:d:${key}`;
+
+function detailFields(id, details, group) {
+  return fieldsIn(group).map((f) => {
+    const k = detailKey(id, f.key);
+    const value = drafts.has(k) ? drafts.get(k) : details[f.key] || "";
+    const chips = f.chips ? `<div class="chips">${f.chips.map((c) =>
+      `<button type="button" data-action="chip" data-value="${esc(c)}" aria-pressed="${value === c}">${esc(c)}</button>`).join("")}</div>` : "";
+    const inputID = `d-${id}-${f.key}`;
+    return `<div><label for="${esc(inputID)}">${esc(f.label)}</label>${draftInput(k, details[f.key] || "",
+      `id="${esc(inputID)}" data-detail="${esc(f.key)}" maxlength="200" autocomplete="off" placeholder="e.g. ${esc(f.placeholder)}"`)}${chips}</div>`;
+  }).join("");
 }
 
 function aboutEditor(id, about, heading) {
+  const d = about.details || {};
   return `<div class="card" data-about="${esc(id)}">${heading}
     <div class="field"><h4 class="label">${PROMPTS.gift.label}</h4>${draftArea(`about:${id}:gift`, about.gift, `name="gift" placeholder="${esc(PROMPTS.gift.placeholder)}"`)}</div>
-    <div class="field"><h4 class="label">${PROMPTS.book.label}</h4>${draftArea(`about:${id}:book`, about.book, `name="book" placeholder="${esc(PROMPTS.book.placeholder)}"`)}</div>
+    <p class="subhead">Sizes</p><p class="hint-text">Whatever you'd tell a shop assistant. Skip any you'd rather not share.</p>
+    <div class="details">${detailFields(id, d, "sizes")}</div>
+    <p class="subhead">Good to know</p><p class="hint-text">The small things that make a gift feel like it's for you.</p>
+    <div class="details wide">${detailFields(id, d, "likes")}</div>
+    <div class="field" style="margin-top:22px;padding-top:18px;border-top:1px solid var(--line)"><h4 class="label">${PROMPTS.book.label}</h4>${draftArea(`about:${id}:book`, about.book, `name="book" placeholder="${esc(PROMPTS.book.placeholder)}"`)}</div>
     <div class="actions"><button class="btn" data-action="save-about">Save</button><span class="status"></span></div></div>`;
 }
 
@@ -282,8 +360,10 @@ function everyoneTab() {
   const a = state.assignment;
   const rows = state.people.map((p) => {
     const tags = (a.gifts.includes(p.id) ? giftTag : "") + (a.book === p.id ? bookTag : "") + (p.kid ? wildTag : "");
-    const count = p.hints.length ? `<span class="count">${p.hints.length} hint${p.hints.length === 1 ? "" : "s"}</span>` : "";
-    return `<details class="card" data-person="${esc(p.id)}"><summary><h3>${esc(p.name)}</h3>${tags}${count}</summary>
+    const fresh = newHints(p);
+    const count = p.hints.length ? `<span class="count">${p.hints.length} hint${p.hints.length === 1 ? "" : "s"}${fresh ? ` · ${fresh} new` : ""}</span>` : "";
+    const hasNew = fresh || isNewAbout(p);
+    return `<details class="card${hasNew ? " has-new" : ""}" data-person="${esc(p.id)}"><summary><h3>${esc(p.name)}</h3>${tags}${count}</summary>
       <div class="body">${aboutBlock(p)}${hintsBlock(p)}${addHint(p)}</div></details>`;
   }).join("");
   return `<h2>Everyone</h2><p class="intro">See what people want, and leave a hint for anyone. A hint is hidden from the person it's about.</p>${rows}`;
@@ -349,7 +429,12 @@ async function run(button, status, work, { clear = [], done = "Saved" } = {}) {
   }
 }
 
-$("#view").addEventListener("input", (e) => { if (e.target.dataset.draft) drafts.set(e.target.dataset.draft, e.target.value); });
+$("#view").addEventListener("input", (e) => {
+  if (e.target.dataset.draft) drafts.set(e.target.dataset.draft, e.target.value);
+  if (e.target.dataset.detail) {
+    e.target.parentElement.querySelectorAll(".chips button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.value === e.target.value.trim())));
+  }
+});
 
 $("#view").addEventListener("click", async (e) => {
   const button = e.target.closest("[data-action]");
@@ -357,6 +442,14 @@ $("#view").addEventListener("click", async (e) => {
   const action = button.dataset.action;
   const status = button.parentElement.querySelector(".status");
 
+  if (action === "chip") {
+    // Fill the field rather than replace the form: tapping "L" puts L in the box, tapping it again empties it,
+    // and anything typed after ("L, tall") is the person's own business.
+    const input = button.closest(".chips").parentElement.querySelector("input[data-detail]");
+    input.value = button.getAttribute("aria-pressed") === "true" ? "" : button.dataset.value;
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    return;
+  }
   if (action === "edit-assignment") { editingAssignment = true; return render(); }
   if (action === "edit-giver") { editingGiver = button.dataset.giver; return render(); }
   if (action === "cancel-assignment") {
@@ -379,8 +472,9 @@ $("#view").addEventListener("click", async (e) => {
   if (action === "save-about") {
     const card = button.closest("[data-about]");
     const id = card.dataset.about;
-    return run(button, status, () => api("/about", "PUT", { person: id, gift: $("[name=gift]", card).value, book: $("[name=book]", card).value }),
-      { clear: [`about:${id}:gift`, `about:${id}:book`] });
+    const details = Object.fromEntries([...card.querySelectorAll("input[data-detail]")].map((i) => [i.dataset.detail, i.value]));
+    return run(button, status, () => api("/about", "PUT", { person: id, gift: $("[name=gift]", card).value, book: $("[name=book]", card).value, details }),
+      { clear: [`about:${id}:gift`, `about:${id}:book`, ...Object.keys(details).map((k) => detailKey(id, k))] });
   }
   if (action === "add-hint") {
     const box = button.closest("[data-add-hint]");

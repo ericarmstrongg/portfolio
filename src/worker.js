@@ -1,6 +1,7 @@
 import { verifyKey } from "./lib/miniappkey.js";
 import * as realRoster from "./roster.js";
 import { DENIED_HTML } from "./denied.js";
+import { DETAIL_FIELDS, parseDetails, readDetails } from "./details.js";
 
 const APP = "ss";
 const COOKIE = "__Host-ms_ss";
@@ -39,13 +40,15 @@ function readCookie(req, name) {
 export function d1Store(db) {
   return {
     async getAbout() {
-      const { results } = await db.prepare("SELECT person_id, gift, book FROM about").all();
-      return Object.fromEntries(results.map((r) => [r.person_id, { gift: r.gift, book: r.book }]));
+      const { results } = await db.prepare("SELECT person_id, gift, book, details, updated_at FROM about").all();
+      return Object.fromEntries(results.map((r) => [r.person_id, { gift: r.gift, book: r.book, details: readDetails(r.details), updated: r.updated_at }]));
     },
-    async setAbout(id, gift, book, now) {
+    /** `details` null means "not sent": the stored sizes are kept, so a page loaded before they existed can't wipe them. */
+    async setAbout(id, gift, book, details, now) {
+      const d = details === null ? null : JSON.stringify(details);
       await db
-        .prepare("INSERT INTO about (person_id, gift, book, updated_at) VALUES (?1, ?2, ?3, ?4) ON CONFLICT(person_id) DO UPDATE SET gift = ?2, book = ?3, updated_at = ?4")
-        .bind(id, gift, book, now)
+        .prepare("INSERT INTO about (person_id, gift, book, details, updated_at) VALUES (?1, ?2, ?3, COALESCE(?4, '{}'), ?5) ON CONFLICT(person_id) DO UPDATE SET gift = ?2, book = ?3, details = COALESCE(?4, details), updated_at = ?5")
+        .bind(id, gift, book, d, now)
         .run();
     },
     async getAssignment(giver) {
@@ -164,8 +167,12 @@ export function createHandler({ roster = realRoster, now = () => Math.floor(Date
 
     if (route === "/me" && request.method === "GET") {
       const [about, assignment, hints] = await Promise.all([db.getAbout(), db.getAssignment(me.id), db.getHints()]);
-      const aboutOf = (id) => about[id] || { gift: "", book: "" };
+      const aboutOf = (id) => about[id] || { gift: "", book: "", details: {}, updated: 0 };
       return json({
+        // Server seconds, so the page can tell what changed since a visit without trusting the phone's clock.
+        now: t,
+        // The page draws its sizes form from this, so the two can't disagree about which fields exist.
+        detailFields: DETAIL_FIELDS,
         me: { id: me.id, name: me.name, about: aboutOf(me.id) },
         isOrganizer: isOrganizer,
         // Only the caller's own rows. Anybody else's are reachable only through the organizer routes below.
@@ -182,7 +189,7 @@ export function createHandler({ roster = realRoster, now = () => Math.floor(Date
             about: aboutOf(p.id),
             hints: hints
               .filter((h) => h.subject === p.id)
-              .map((h) => ({ id: h.id, author: person(h.author)?.name ?? "Someone", mine: h.author === me.id, text: h.text })),
+              .map((h) => ({ id: h.id, author: person(h.author)?.name ?? "Someone", mine: h.author === me.id, text: h.text, updated: h.updated })),
           })),
       });
     }
@@ -192,8 +199,11 @@ export function createHandler({ roster = realRoster, now = () => Math.floor(Date
       const { person: target, gift, book } = body || {};
       if (typeof target !== "string" || typeof gift !== "string" || typeof book !== "string") return bad();
       if (gift.length > MAX_ABOUT || book.length > MAX_ABOUT) return bad();
+      // Optional, so an older copy of the page that knows nothing of sizes saves its notes and leaves them alone.
+      const details = body.details === undefined ? null : parseDetails(body.details);
+      if (body.details !== undefined && !details) return bad();
       if (!canEditAbout(target)) return denied();
-      await db.setAbout(target, gift, book, t);
+      await db.setAbout(target, gift, book, details, t);
       return json({ ok: true });
     }
 
