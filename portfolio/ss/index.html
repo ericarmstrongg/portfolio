@@ -126,6 +126,13 @@
   .facts .v{font-size:15.5px;font-weight:600;overflow-wrap:anywhere}
   .facts.wide{grid-template-columns:1fr}
   .facts.wide .v{font-weight:500}
+  /* Got it: a tick per thing you're buying, and who else is on the same person. */
+  .got{display:flex;flex-direction:column;gap:8px;margin:0 0 16px}
+  .check{display:flex;align-items:center;gap:10px;background:var(--well);border-radius:12px;padding:10px 14px;cursor:pointer;font-weight:600;font-size:15px}
+  .check input{width:20px;height:20px;accent-color:var(--book);margin:0;flex:none}
+  .check:has(input:checked){background:var(--book-soft);color:var(--book)}
+  .check .with{display:block;font-weight:500;font-size:13.5px;color:var(--muted);margin-top:1px}
+  .progress{color:var(--muted);font-size:14px;margin:-8px 0 16px}
   .add{margin-top:16px;padding-top:16px;border-top:1px solid var(--line)}
   .add textarea{min-height:72px}
 
@@ -146,6 +153,28 @@
   .giver .what{flex:1;display:flex;flex-wrap:wrap;gap:6px;font-size:14px}
   .giver.editing{display:block;background:var(--well)}
 
+  /* ── The survey: a sheet over the page, one question at a time ── */
+  .cta{display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:linear-gradient(135deg,#fff 0%,var(--accent-soft) 100%)}
+  .cta p{flex:1 1 220px;color:var(--muted);font-size:15px}
+  .cta strong{display:block;color:var(--ink);font-size:16.5px;margin-bottom:2px}
+  #survey{position:fixed;inset:0;z-index:20;display:flex;align-items:flex-end;justify-content:center;background:rgba(27,40,56,.38)}
+  #survey[hidden]{display:none}
+  #survey .sheet{width:100%;max-width:560px;max-height:92vh;overflow:auto;background:#fff;border-radius:22px 22px 0 0;padding:18px 18px 22px;
+    box-shadow:0 -8px 30px rgba(27,40,56,.18)}
+  @media (min-width:600px){#survey{align-items:center}#survey .sheet{border-radius:22px}}
+  .sv-top{display:flex;align-items:center;gap:10px;color:var(--faint);font-size:13.5px;font-weight:600}
+  .sv-top .meter{flex:1;margin:0}
+  .sv-close{margin-left:auto;background:none;border:0;color:var(--muted);font-size:22px;line-height:1;padding:4px 6px}
+  #survey h2{margin:16px 0 4px}
+  #survey .intro{margin:0 0 14px}
+  .opts{display:flex;flex-wrap:wrap;gap:8px}
+  .opts button{border:1px solid var(--field-line);background:#fff;color:var(--ink);border-radius:999px;padding:9px 14px;font-size:15px;font-weight:500}
+  .opts button[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:#fff}
+  .opts.single{flex-direction:column}
+  .opts.single button{border-radius:12px;text-align:left}
+  .sv-nav{display:flex;align-items:center;gap:10px;margin-top:20px;position:sticky;bottom:-22px;background:#fff;padding:12px 0 4px}
+  .sv-nav .btn{margin-left:auto}
+  .review .well+.well{margin-top:10px}
   .toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,20px);opacity:0;z-index:10;background:var(--ink);color:#fff;
     padding:9px 16px;border-radius:999px;font-size:14px;font-weight:600;transition:opacity .2s,transform .2s;pointer-events:none}
   .toast.on{opacity:1;transform:translate(-50%,0)}
@@ -159,6 +188,7 @@
   <nav class="tabs" id="tabs" hidden></nav>
   <main id="view"><p class="loading">Loading…</p></main>
 </div>
+<div id="survey" hidden role="dialog" aria-modal="true" aria-label="About me survey"></div>
 <div class="toast" id="toast" role="status"></div>
 <script>
 const $ = (s, el = document) => el.querySelector(s);
@@ -226,6 +256,15 @@ async function load() {
   render();
 }
 
+const coupleOf = (id) => (state.bookCouples || []).find((c) => c.includes(id));
+/** A book for either partner is the couple's one book, compared by its first id — the same rule as the Worker. */
+const bookKey = (id) => coupleOf(id)?.[0] ?? id;
+const bookName = (id) => (coupleOf(id) || [id]).map((x) => nameOf(x)).join(" & ");
+const partnerOf = (id) => (coupleOf(id) || []).find((x) => x !== id);
+const target = (id, kind) => (kind === "book" ? bookKey(id) : id);
+const hasBook = (id) => !!state.assignment.book && bookKey(id) === state.assignment.book;
+const isBought = (id, kind) => state.bought.some((b) => b.kind === kind && b.person === target(id, kind));
+const collabs = (id, kind) => state.collaborators.find((c) => c.kind === kind && c.person === target(id, kind))?.givers ?? [];
 const nameOf = (id) => (id === state.me.id ? state.me.name : state.people.find((p) => p.id === id)?.name ?? id);
 const personOf = (id) => state.people.find((p) => p.id === id);
 const seenBy = () => (state.isOrganizer ? "Only you can see who you have." : "Only you and Anne can see who you have.");
@@ -278,6 +317,33 @@ function addHint(p) {
 }
 
 const giftTag = `<span class="tag gift">🎁 Gift</span>`;
+/** Your tags for one person — gift, book (naming the partner when it's a shared book), a tick once you've got it. */
+function tagsFor(p) {
+  const a = state.assignment;
+  const done = (kind) => (isBought(p.id, kind) ? " ✓" : "");
+  const partner = partnerOf(p.id);
+  return (a.gifts.includes(p.id) ? `<span class="tag gift">🎁 Gift${done("gift")}</span>` : "") +
+    (hasBook(p.id) ? `<span class="tag book">📕 Book${partner ? ` · with ${esc(nameOf(partner))}` : ""}${done("book")}</span>` : "") +
+    (p.kid ? `<span class="tag wild">Wild card${done("gift")}</span>` : "");
+}
+
+/**
+ * One tick per thing you're getting this person, and under it whoever else has them for the same thing.
+ * A kid gets a tick too — nobody is assigned a kid, but anybody might pick something up.
+ */
+function gotBlock(p) {
+  const kinds = [...(state.assignment.gifts.includes(p.id) || p.kid ? ["gift"] : []), ...(hasBook(p.id) ? ["book"] : [])];
+  if (!kinds.length) return "";
+  return `<div class="got">${kinds.map((kind) => {
+    const label = kind === "book" ? `Got the book${partnerOf(p.id) ? ` for ${esc(bookName(p.id))}` : ""}` : p.kid ? `Got something for ${esc(p.name)}` : "Got the gift";
+    const others = collabs(p.id, kind);
+    const who = kind === "book" ? esc(bookName(p.id)) : esc(p.name);
+    const with_ = others.length
+      ? `<span class="with">👥 Also giving ${who} ${kind === "book" ? "a book" : "a gift"}: ${others.map((g) => `${esc(g.name)} (${g.bought ? "got it ✓" : "not yet"})`).join(", ")}</span>`
+      : "";
+    return `<label class="check"><input type="checkbox" data-bought="${kind}" data-for="${esc(p.id)}" ${isBought(p.id, kind) ? "checked" : ""}><span>${label}${with_}</span></label>`;
+  }).join("")}</div>`;
+}
 const bookTag = `<span class="tag book">📕 Book exchange</span>`;
 const wildTag = `<span class="tag wild">Wild card</span>`;
 
@@ -290,7 +356,10 @@ function picker(giver, a, cancellable) {
     `<label><input type="${type}" ${type === "radio" ? `name="${group}"` : ""} data-kind="${kind}" value="${esc(p.id)}" ${on ? "checked" : ""}>${esc(p.name)}</label>`;
   return `<div data-picker="${esc(giver)}">
     <div class="pick"><h4 class="label">🎁 Gifts</h4><div class="choices">${candidates.map((p) => opt("checkbox", "gift", p, a.gifts.includes(p.id))).join("")}</div></div>
-    <div class="pick"><h4 class="label">📕 Book exchange</h4><div class="choices">${candidates.map((p) => opt("radio", "book", p, a.book === p.id)).join("")}</div></div>
+    <div class="pick"><h4 class="label">📕 Book exchange</h4><div class="choices">${candidates
+      // A couple is one book: offered once, under both names, and never to either partner.
+      .filter((p) => bookKey(p.id) === p.id && !(coupleOf(p.id) || []).includes(giver))
+      .map((p) => opt("radio", "book", { id: p.id, name: bookName(p.id) }, a.book === p.id)).join("")}</div></div>
     <div class="actions"><button class="btn" data-action="save-assignment">Save</button>${cancellable ? `<button class="link" data-action="cancel-assignment">Cancel</button>` : ""}<span class="status"></span></div>
   </div>`;
 }
@@ -304,20 +373,24 @@ function listTab() {
     return `<h2>Who do you have?</h2><p class="intro">Tick the people from Anne's text. ${seenBy()}</p>
       <div class="card">${picker(state.me.id, a, !empty)}</div>`;
   }
-  const ids = [...a.gifts, ...(a.book && !a.gifts.includes(a.book) ? [a.book] : [])];
+  // A shared book puts both partners on your list: you're shopping from both of their notes.
+  const ids = [...new Set([...a.gifts, ...(a.book ? coupleOf(a.book) || [a.book] : [])])];
   const cards = ids.map((id) => {
     const p = personOf(id);
     if (!p) return "";
-    return `<article class="card"><header class="person-head"><h3>${esc(p.name)}</h3>${a.gifts.includes(id) ? giftTag : ""}${a.book === id ? bookTag : ""}</header>
-      ${aboutBlock(p)}${hintsBlock(p)}</article>`;
+    return `<article class="card"><header class="person-head"><h3>${esc(p.name)}</h3>${tagsFor(p)}</header>
+      ${gotBlock(p)}${aboutBlock(p)}${hintsBlock(p)}</article>`;
   }).join("");
+  const things = [...a.gifts.map((id) => [id, "gift"]), ...(a.book ? [[a.book, "book"]] : [])];
+  const got = things.filter(([id, kind]) => isBought(id, kind)).length;
+  const progress = `<p class="progress">${got === things.length ? "🎉 You've got everything." : `🛍️ ${got} of ${things.length} bought`}</p>`;
   const news = ids.map(personOf).filter(Boolean).flatMap((p) => {
     const n = newHints(p);
     return [...(n ? [`${n} new hint${n === 1 ? "" : "s"} for ${esc(p.name)}`] : []), ...(isNewAbout(p) ? [`new ideas from ${esc(p.name)}`] : [])];
   });
   const newsLine = news.length ? `<p class="news">✨ Since your last visit: ${news.join(" · ")}</p>` : "";
   return `<div class="section-head"><h2>You're buying for</h2><button class="btn outline" data-action="edit-assignment">Change</button></div>
-    <p class="note">🔒 ${seenBy()}</p>${newsLine}${cards}`;
+    <p class="note">🔒 ${seenBy()}</p>${progress}${newsLine}${cards}`;
 }
 
 const detailKey = (id, key) => `about:${id}:d:${key}`;
@@ -330,7 +403,7 @@ function detailFields(id, details, group) {
       `<button type="button" data-action="chip" data-value="${esc(c)}" aria-pressed="${value === c}">${esc(c)}</button>`).join("")}</div>` : "";
     const inputID = `d-${id}-${f.key}`;
     return `<div><label for="${esc(inputID)}">${esc(f.label)}</label>${draftInput(k, details[f.key] || "",
-      `id="${esc(inputID)}" data-detail="${esc(f.key)}" maxlength="200" autocomplete="off" placeholder="e.g. ${esc(f.placeholder)}"`)}${chips}</div>`;
+      `id="${esc(inputID)}" data-detail="${esc(f.key)}" maxlength="${state.detailMax || 400}" autocomplete="off" placeholder="e.g. ${esc(f.placeholder)}"`)}${chips}</div>`;
   }).join("");
 }
 
@@ -347,7 +420,9 @@ function aboutEditor(id, about, heading) {
 }
 
 function meTab() {
-  let h = `<h2>About me</h2><p class="intro">Help whoever has you find something good. Everyone can read this.</p>`;
+  let h = `<h2>About me</h2><p class="intro">Help whoever has you find something good. Everyone can read this.</p>
+    <div class="card cta"><p><strong>✨ Not sure what to write?</strong>Tap through seven quick questions and we'll fill this in for you — stocking stuffers included.</p>
+    <button class="btn" data-action="survey">Take the 90-second survey</button></div>`;
   h += aboutEditor(state.me.id, state.me.about, "");
   for (const k of state.people.filter((p) => p.kid && p.canEdit)) {
     h += aboutEditor(k.id, k.about, `<header class="person-head"><h3>${esc(k.name)}</h3>${wildTag}</header>
@@ -359,12 +434,12 @@ function meTab() {
 function everyoneTab() {
   const a = state.assignment;
   const rows = state.people.map((p) => {
-    const tags = (a.gifts.includes(p.id) ? giftTag : "") + (a.book === p.id ? bookTag : "") + (p.kid ? wildTag : "");
+    const tags = tagsFor(p);
     const fresh = newHints(p);
     const count = p.hints.length ? `<span class="count">${p.hints.length} hint${p.hints.length === 1 ? "" : "s"}${fresh ? ` · ${fresh} new` : ""}</span>` : "";
     const hasNew = fresh || isNewAbout(p);
     return `<details class="card${hasNew ? " has-new" : ""}" data-person="${esc(p.id)}"><summary><h3>${esc(p.name)}</h3>${tags}${count}</summary>
-      <div class="body">${aboutBlock(p)}${hintsBlock(p)}${addHint(p)}</div></details>`;
+      <div class="body">${gotBlock(p)}${aboutBlock(p)}${hintsBlock(p)}${addHint(p)}</div></details>`;
   }).join("");
   return `<h2>Everyone</h2><p class="intro">See what people want, and leave a hint for anyone. A hint is hidden from the person it's about.</p>${rows}`;
 }
@@ -375,20 +450,27 @@ function organizerTab() {
   const books = new Set(givers.map((g) => g.book).filter(Boolean));
   const gifted = new Set(givers.flatMap((g) => g.gifts));
   const noGift = adults.filter((id) => !gifted.has(id));
-  const noBook = adults.filter((id) => !books.has(id));
+  // A couple is covered by one book, and listed once.
+  const noBook = [...new Set(adults.filter((id) => !books.has(bookKey(id))).map(bookKey))];
+  const bookGivers = (key) => givers.filter((g) => g.book === key);
+  // Two *households* on one book is a mistake; a couple giving one book together (Rob and Laura both ticking
+  // Kellie) is the point, so givers are counted by couple too.
+  const doubled = [...books].filter((key) => new Set(bookGivers(key).map((g) => bookKey(g.id))).size > 1);
   const entered = givers.filter((g) => g.gifts.length || g.book).length;
   const list = (ids) => ids.map((id) => esc(nameOf(id))).join(", ");
+  const bookList = (ids) => ids.map((id) => esc(bookName(id))).join(", ");
 
   let h = `<h2>Organizer</h2><p class="intro">What everyone has ticked. You can change anybody's, and they can still change their own. Only you can see this.</p>`;
   h += `<div class="card"><h4 class="label">Progress</h4><p><strong>${entered} of ${givers.length}</strong> people have an assignment entered.</p>
     <div class="meter"><span style="width:${Math.round((entered / givers.length) * 100)}%"></span></div>
     ${noGift.length ? `<p class="gap">${giftTag.replace("Gift", "No gift yet")}<span>${list(noGift)}</span></p>` : ""}
-    ${noBook.length ? `<p class="gap">${bookTag.replace("Book exchange", "No book yet")}<span>${list(noBook)}</span></p>` : ""}
-    ${!noGift.length && !noBook.length ? `<p class="gap">Everyone has a gift and a book coming. 🎄</p>` : ""}</div>`;
+    ${noBook.length ? `<p class="gap">${bookTag.replace("Book exchange", "No book yet")}<span>${bookList(noBook)}</span></p>` : ""}
+    ${doubled.map((key) => `<p class="gap">${bookTag.replace("Book exchange", "Two books")}<span>${esc(bookName(key))} — from ${list(bookGivers(key).map((g) => g.id))}</span></p>`).join("")}
+    ${!noGift.length && !noBook.length && !doubled.length ? `<p class="gap">Everyone has a gift and a book coming. 🎄</p>` : ""}</div>`;
   h += `<div class="card rows" style="padding:0">` + givers.map((g) => {
     if (editingGiver === g.id) return `<div class="giver editing"><p style="margin-bottom:12px"><strong>${esc(g.name)}</strong> is buying for…</p>${picker(g.id, g, true)}</div>`;
     const what = g.gifts.length || g.book
-      ? g.gifts.map((id) => `<span class="tag gift">🎁 ${esc(nameOf(id))}</span>`).join("") + (g.book ? `<span class="tag book">📕 ${esc(nameOf(g.book))}</span>` : "")
+      ? g.gifts.map((id) => `<span class="tag gift">🎁 ${esc(nameOf(id))}</span>`).join("") + (g.book ? `<span class="tag book">📕 ${esc(bookName(g.book))}</span>` : "")
       : `<span class="empty" style="font-size:14px">Nothing yet</span>`;
     return `<div class="giver"><span class="who">${esc(g.name)}</span><span class="what">${what}</span><button class="link" data-action="edit-giver" data-giver="${esc(g.id)}">Edit</button></div>`;
   }).join("") + `</div>`;
@@ -442,6 +524,7 @@ $("#view").addEventListener("click", async (e) => {
   const action = button.dataset.action;
   const status = button.parentElement.querySelector(".status");
 
+  if (action === "survey") return openSurvey().catch(() => toast("Couldn't open the survey. Try again."));
   if (action === "chip") {
     // Fill the field rather than replace the form: tapping "L" puts L in the box, tapping it again empties it,
     // and anything typed after ("L, tall") is the person's own business.
@@ -493,6 +576,112 @@ $("#view").addEventListener("click", async (e) => {
   if (action === "delete-hint") {
     if (!confirm("Delete this hint?")) return;
     return run(button, null, () => api(`/hints/${hint.dataset.hint}`, "DELETE", {}), { done: "Hint deleted" });
+  }
+});
+
+// ── The survey ─────────────────────────────────────────────────────────────
+// Questions, suggestions and the wording of the result live in survey.js, which the tests import too. This
+// part only draws it. The result fills the same form you'd type into and saves through the same button, so
+// there is one way to write About me, not two — and it only ever adds to what's there.
+let S;            // the module, loaded the first time somebody opens the survey
+let survey = null; // { step, answers } while open; kept if you close it, so reopening picks up where you were
+const surveyEl = $("#survey");
+
+async function openSurvey() {
+  if (!S) S = await import("/ss/survey.js");
+  if (!survey) survey = { step: 0, answers: {} };
+  surveyEl.hidden = false;
+  document.body.style.overflow = "hidden";
+  renderSurvey();
+}
+function closeSurvey() { surveyEl.hidden = true; document.body.style.overflow = ""; }
+
+function renderSurvey() {
+  const steps = S.STEPS, n = steps.length, i = survey.step, a = survey.answers;
+  const top = (label, pct) => `<div class="sv-top"><span>${label}</span><div class="meter"><span style="width:${pct}%"></span></div>
+    <button class="sv-close" data-sv="close" aria-label="Close">×</button></div>`;
+  if (i >= n) {
+    const out = S.compose(a, state.detailMax || 400);
+    const label = (k) => state.detailFields.find((f) => f.key === k)?.label ?? k;
+    const parts = [
+      out.gift ? `<div class="well"><div class="idea-label">${PROMPTS.gift.label}</div><p class="text">${esc(out.gift)}</p></div>` : "",
+      ...Object.entries(out.details).map(([k, v]) => `<div class="well"><div class="idea-label">${esc(label(k))}</div><p class="text">${esc(v)}</p></div>`),
+    ].join("");
+    surveyEl.innerHTML = `<div class="sheet">${top("Done", 100)}<h2>Here's what we'll add</h2>
+      <p class="intro">It goes after anything you've already written — nothing is replaced. You can edit it afterwards.</p>
+      <div class="review">${parts || `<p class="empty">You skipped everything, so there's nothing to add.</p>`}</div>
+      <div class="sv-nav"><button class="link" data-sv="back">Back</button>${parts ? `<button class="btn" data-sv="apply">Add to About me</button>` : `<button class="btn" data-sv="close">Close</button>`}</div></div>`;
+    return;
+  }
+  const step = steps[i];
+  const options = typeof step.options === "function" ? step.options(a) : step.options || [];
+  const picked = a[step.id] ?? (step.multi ? [] : null);
+  const body = step.text
+    ? `<textarea data-sv-text placeholder="A thing, a shop, a link…">${esc(a[step.id] ?? "")}</textarea>`
+    : `<div class="opts${step.multi ? "" : " single"}">${options.map((o) =>
+        `<button type="button" data-sv="pick" data-value="${esc(o)}" aria-pressed="${step.multi ? picked.includes(o) : picked === o}">${esc(o)}</button>`).join("")}</div>`;
+  const answered = step.text ? !!(a[step.id] ?? "").trim() : step.multi ? picked.length > 0 : picked !== null;
+  surveyEl.innerHTML = `<div class="sheet">${top(`${i + 1} of ${n}`, Math.round((i / n) * 100))}
+    <h2>${esc(step.title)}</h2>${step.hint ? `<p class="intro">${esc(step.hint)}</p>` : `<p class="intro"></p>`}${body}
+    <div class="sv-nav">${i ? `<button class="link" data-sv="back">Back</button>` : ""}<button class="btn" data-sv="next">${answered ? "Next" : "Skip"}</button></div></div>`;
+}
+
+surveyEl.addEventListener("click", (e) => {
+  if (e.target === surveyEl) return closeSurvey();
+  const b = e.target.closest("[data-sv]");
+  if (!b) return;
+  const act = b.dataset.sv, step = S.STEPS[survey.step], a = survey.answers;
+  if (act === "close") return closeSurvey();
+  if (act === "back") { survey.step = Math.max(0, survey.step - 1); return renderSurvey(); }
+  if (act === "next") { survey.step++; return renderSurvey(); }
+  if (act === "pick") {
+    const v = b.dataset.value;
+    if (step.multi) { const list = a[step.id] ?? []; a[step.id] = list.includes(v) ? list.filter((x) => x !== v) : [...list, v]; }
+    else a[step.id] = a[step.id] === v ? null : v;
+    // Stocking ideas come from the earlier answers: a pick that's no longer offered goes with it.
+    if (step.id !== "stocking" && a.stocking) { const offered = S.suggestStocking(a); a.stocking = a.stocking.filter((x) => offered.includes(x)); }
+    if (!step.multi && a[step.id]) { survey.step++; }
+    return renderSurvey();
+  }
+  if (act === "apply") return applySurvey();
+});
+surveyEl.addEventListener("input", (e) => {
+  if (!e.target.matches("[data-sv-text]")) return;
+  survey.answers[S.STEPS[survey.step].id] = e.target.value;
+  const next = $("[data-sv=next]", surveyEl);
+  if (next) next.textContent = e.target.value.trim() ? "Next" : "Skip";
+});
+addEventListener("keydown", (e) => { if (e.key === "Escape" && !surveyEl.hidden) closeSurvey(); });
+
+function applySurvey() {
+  const out = S.compose(survey.answers, state.detailMax || 400);
+  const card = document.querySelector(`[data-about="${CSS.escape(state.me.id)}"]`);
+  if (!card) return closeSurvey();
+  const set = (el, v) => { el.value = v; el.dispatchEvent(new Event("input", { bubbles: true })); };
+  const gift = $("[name=gift]", card);
+  set(gift, S.merge(gift.value, out.gift, "\n\n", 4000));
+  for (const [k, v] of Object.entries(out.details)) {
+    const input = $(`input[data-detail="${k}"]`, card);
+    if (input) set(input, S.merge(input.value, v, k === "stocking" ? ", " : "; ", state.detailMax || 400));
+  }
+  survey = null;
+  closeSurvey();
+  // The same Save as typing it in: one write path, one toast, one place it can fail and say so.
+  $("[data-action=save-about]", card).click();
+}
+
+$("#view").addEventListener("change", async (e) => {
+  const box = e.target.closest("input[data-bought]");
+  if (!box) return;
+  box.disabled = true;
+  try {
+    await api("/bought", "PUT", { person: box.dataset.for, kind: box.dataset.bought, bought: box.checked });
+    await load();
+    toast(box.checked ? "Ticked off ✓" : "Unticked");
+  } catch {
+    box.checked = !box.checked;
+    box.disabled = false;
+    toast("Couldn't save. Try again.");
   }
 });
 

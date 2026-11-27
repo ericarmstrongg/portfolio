@@ -16,18 +16,22 @@ export const ADULTS = [
   { id: "anne", name: "Anne", uid: "zJ5D38iXMrZmrYG3UAsaxXlkc8C3" }, // aarmstrong68@
   { id: "robbie", name: "Robbie", uid: "kCXQIHM8kndX56vjjVbm3Wuw1ut2" }, // rw3.armstrong@
   { id: "eric", name: "Eric", uid: "TdFJw5tW50QVLGrjIwLRuXpyq6Z2" }, // eric.armstrongg@
-  { id: "kj", name: "KJ", uid: "NxpWlJSJYpccpxyQwCm4RYJAwHh2" }, // kelliejoy@
+  { id: "kj", name: "Kellie", uid: "NxpWlJSJYpccpxyQwCm4RYJAwHh2" }, // kelliejoy@
   { id: "luisa", name: "Luisa", uid: "gMhNN0ukeUgo6woyhfQOgGRUr922" }, // mlarmstrong22@
   { id: "tom", name: "Tom", uid: "8kglVNp82tRZEGnEshOe9bMzhSj2" }, // lapinski.thomas@
   { id: "jack", name: "Jack", uid: "P5bZes57y2Ut8Bzn5uNIRYEhVfv2" }, // jca.armstrong@
-  { id: "ian", name: "Ian", uid: "PLACEHOLDER_ian" }, // TODO: email to come
-  { id: "barbara", name: "Barbara", uid: "PLACEHOLDER_barbara" }, // no Majestic account in prod yet
+  { id: "ian", name: "Ian", uid: "PLACEHOLDER_ian" }, // no Majestic account in prod as of 27 Nov — fill in once he signs up
 ];
 
 // Anne makes the assignments every year. An organizer can read and set **anybody's** assignment, so this
 // list is the people who already know them all — adding somebody here tells them every pairing. It grants
 // nothing else: hints about an organizer stay hidden from them like anyone's.
 export const ORGANIZERS = ["anne"];
+
+// Couples who receive **one book between them**. Gifts stay separate. The first id is the one stored, so a book
+// assigned to either partner is the same book: the page names it "Rob & Laura", the picker offers it once, and
+// neither partner can be given it. Ids stay as they are — only how a book is counted changes.
+export const BOOK_COUPLES = [["rob", "laura"]];
 
 export const KIDS = [
   { id: "margot", name: "Margot", parents: ["luisa", "tom"] },

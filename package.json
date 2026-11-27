@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test test/miniappkey.test.js test/worker.test.js test/roster.test.js",
+    "test": "node --test test/miniappkey.test.js test/worker.test.js test/roster.test.js test/survey.test.js",
     "dev": "wrangler dev"
   },
   "devDependencies": {

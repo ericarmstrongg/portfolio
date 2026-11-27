@@ -1,7 +1,7 @@
 import { verifyKey } from "./lib/miniappkey.js";
 import * as realRoster from "./roster.js";
 import { DENIED_HTML } from "./denied.js";
-import { DETAIL_FIELDS, parseDetails, readDetails } from "./details.js";
+import { DETAIL_FIELDS, MAX_DETAIL, parseDetails, readDetails } from "./details.js";
 
 const APP = "ss";
 const COOKIE = "__Host-ms_ss";
@@ -66,6 +66,16 @@ export function d1Store(db) {
         ...rows.map((r) => db.prepare("INSERT INTO assignments (giver_id, receiver_id, kind, updated_at) VALUES (?1, ?2, ?3, ?4)").bind(giver, r.receiver, r.kind, now)),
       ]);
     },
+    async getAllBought() {
+      const { results } = await db.prepare("SELECT giver_id, receiver_id, kind FROM bought").all();
+      return results.map((r) => ({ giver: r.giver_id, receiver: r.receiver_id, kind: r.kind }));
+    },
+    async setBought(giver, receiver, kind, on, now) {
+      await (on
+        ? db.prepare("INSERT INTO bought (giver_id, receiver_id, kind, updated_at) VALUES (?1, ?2, ?3, ?4) ON CONFLICT(giver_id, receiver_id, kind) DO UPDATE SET updated_at = ?4").bind(giver, receiver, kind, now)
+        : db.prepare("DELETE FROM bought WHERE giver_id = ?1 AND receiver_id = ?2 AND kind = ?3").bind(giver, receiver, kind)
+      ).run();
+    },
     async getHints() {
       const { results } = await db.prepare("SELECT id, subject_id, author_id, text, updated_at FROM hints ORDER BY created_at, id").all();
       return results.map((r) => ({ id: r.id, subject: r.subject_id, author: r.author_id, text: r.text, updated: r.updated_at }));
@@ -95,13 +105,19 @@ export function createHandler({ roster = realRoster, now = () => Math.floor(Date
   const isAdult = (id) => roster.ADULTS.some((a) => a.id === id);
   const maxGifts = roster.MAX_GIFTS ?? 6;
   const organizers = roster.ORGANIZERS ?? [];
+  const couples = roster.BOOK_COUPLES ?? [];
+  /** Who a book is for: a partner in a book couple is the couple, stored and compared by its first id. */
+  const bookKey = (id) => couples.find((c) => c.includes(id))?.[0] ?? id;
+  const bookPeople = (id) => couples.find((c) => c.includes(id)) ?? [id];
+  /** Rows compared as the page means them: a book for either partner is the same book. */
+  const norm = (r) => (r.kind === "book" ? { ...r, receiver: bookKey(r.receiver) } : r);
   const order = (id) => everyone.findIndex((p) => p.id === id);
   const byRoster = (a, b) => order(a) - order(b);
 
   /** Rows for one giver, in the shape the page reads. */
   const shape = (rows) => ({
     gifts: rows.filter((a) => a.kind === "gift").map((a) => a.receiver).sort(byRoster),
-    book: rows.find((a) => a.kind === "book")?.receiver ?? null,
+    book: rows.map(norm).find((a) => a.kind === "book")?.receiver ?? null,
   });
 
   /**
@@ -113,8 +129,10 @@ export function createHandler({ roster = realRoster, now = () => Math.floor(Date
     const book = body ? body.book : undefined;
     if (!Array.isArray(gifts) || gifts.length > maxGifts || !(book === null || typeof book === "string")) return null;
     const ok = (id) => typeof id === "string" && id !== giver && isAdult(id);
-    if (!gifts.every(ok) || new Set(gifts).size !== gifts.length || (book !== null && !ok(book))) return null;
-    return [...gifts.map((receiver) => ({ receiver, kind: "gift" })), ...(book ? [{ receiver: book, kind: "book" }] : [])];
+    // A couple's book can't go to either of them: Laura can't be given the book she's half of.
+    const bookOk = (id) => ok(id) && !bookPeople(id).includes(giver);
+    if (!gifts.every(ok) || new Set(gifts).size !== gifts.length || (book !== null && !bookOk(book))) return null;
+    return [...gifts.map((receiver) => ({ receiver, kind: "gift" })), ...(book ? [{ receiver: bookKey(book), kind: "book" }] : [])];
   }
 
   return async function fetch(request, env) {
@@ -149,6 +167,10 @@ export function createHandler({ roster = realRoster, now = () => Math.floor(Date
 
     if (!url.pathname.startsWith("/ss/api/")) {
       if (request.method !== "GET" && request.method !== "HEAD") return refuse();
+      // The survey's questions and suggestions, as a module the page imports. Behind the same gate as the page.
+      if (url.pathname === "/ss/survey.js") {
+        return withSec(await env.ASSETS.fetch(new Request(new URL("/ss/survey.js", url), { method: "GET" })));
+      }
       return withSec(await env.ASSETS.fetch(new Request(new URL("/ss/", url), { method: "GET" })));
     }
 
@@ -166,17 +188,36 @@ export function createHandler({ roster = realRoster, now = () => Math.floor(Date
     const canEditAbout = (id) => id === me.id || roster.KIDS.some((k) => k.id === id && k.parents.includes(me.id));
 
     if (route === "/me" && request.method === "GET") {
-      const [about, assignment, hints] = await Promise.all([db.getAbout(), db.getAssignment(me.id), db.getHints()]);
+      const [about, assignment, hints, all, boughtRows] = await Promise.all([db.getAbout(), db.getAssignment(me.id), db.getHints(), db.getAllAssignments(), db.getAllBought()]);
+      const bought = boughtRows.map(norm);
+      const hasBought = (giver, receiver, kind) => bought.some((b) => b.giver === giver && b.receiver === receiver && b.kind === kind);
+      // For each person you're buying for, whoever else is buying them the same kind of thing — and whether
+      // they've got it. This is the only place one giver's assignment reaches another, and only for a person
+      // both of them have: anybody you don't share stays as hidden as before.
+      const mine = assignment.map(norm);
+      const collaborators = mine.map((m) => ({
+        person: m.receiver,
+        kind: m.kind,
+        givers: all.map(norm)
+          .filter((r) => r.giver !== me.id && r.receiver === m.receiver && r.kind === m.kind)
+          .sort((a, b) => byRoster(a.giver, b.giver))
+          .map((r) => ({ name: person(r.giver)?.name ?? "Someone", bought: hasBought(r.giver, r.receiver, r.kind) })),
+      })).filter((c) => c.givers.length);
       const aboutOf = (id) => about[id] || { gift: "", book: "", details: {}, updated: 0 };
       return json({
         // Server seconds, so the page can tell what changed since a visit without trusting the phone's clock.
         now: t,
         // The page draws its sizes form from this, so the two can't disagree about which fields exist.
         detailFields: DETAIL_FIELDS,
+        detailMax: MAX_DETAIL,
+        bookCouples: couples,
         me: { id: me.id, name: me.name, about: aboutOf(me.id) },
         isOrganizer: isOrganizer,
         // Only the caller's own rows. Anybody else's are reachable only through the organizer routes below.
         assignment: shape(assignment),
+        // Your own ticks only.
+        bought: bought.filter((b) => b.giver === me.id).map(({ receiver, kind }) => ({ person: receiver, kind })),
+        collaborators,
         // Everybody but the caller. **Hints about the caller are never in this list** — the person they're
         // about is the one person who must not see them.
         people: everyone
@@ -231,6 +272,18 @@ export function createHandler({ roster = realRoster, now = () => Math.floor(Date
       const rows = parseAssignment(await readJSON(request), giver);
       if (!rows) return bad();
       await db.setAssignment(giver, rows, t);
+      return json({ ok: true });
+    }
+
+    if (route === "/bought" && request.method === "PUT") {
+      const body = await readJSON(request);
+      const { person: target, kind, bought: on } = body || {};
+      if (typeof target !== "string" || typeof on !== "boolean" || (kind !== "gift" && kind !== "book")) return bad();
+      // Anybody but yourself — an assignment, a kid you picked something up for anyway. A book is adults only,
+      // and is the couple's book when there is one.
+      const p = person(target);
+      if (!p || p.id === me.id || (kind === "book" && (p.kid || bookPeople(p.id).includes(me.id)))) return bad();
+      await db.setBought(me.id, kind === "book" ? bookKey(p.id) : p.id, kind, on, t);
       return json({ ok: true });
     }
 

@@ -32,3 +32,16 @@ test("the trip is set", () => {
 test("every organizer is a real adult", () => {
   for (const id of roster.ORGANIZERS) assert.ok(adults.includes(id), `organizer ${id}`);
 });
+
+test("a book couple is two different adults, and nobody is in two couples", () => {
+  const seen = new Set();
+  for (const c of roster.BOOK_COUPLES ?? []) {
+    assert.equal(c.length, 2, JSON.stringify(c));
+    assert.notEqual(c[0], c[1]);
+    for (const id of c) {
+      assert.ok(adults.includes(id), `couple member ${id}`);
+      assert.ok(!seen.has(id), `${id} is in two couples`);
+      seen.add(id);
+    }
+  }
+});

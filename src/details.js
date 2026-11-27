@@ -19,10 +19,12 @@ export const DETAIL_FIELDS = [
   { key: "colours", group: "likes", label: "Favourite colours", placeholder: "Navy, forest green — no orange" },
   { key: "treats", group: "likes", label: "Snacks, treats & drinks", placeholder: "Dark chocolate, IPAs, oat-milk latte" },
   { key: "brands", group: "likes", label: "Stores & brands", placeholder: "Patagonia, REI, the local bookshop" },
+  { key: "stocking", group: "likes", label: "Stocking stuffers", placeholder: "Hand warmers, dark chocolate, a scratch-off" },
   { key: "avoid", group: "likes", label: "Allergies & no-thanks", placeholder: "Nut allergy, no scented candles, has enough mugs" },
 ];
 
-export const MAX_DETAIL = 200;
+// Long enough for a stocking list the survey builds; short enough that nobody pastes an essay into "Shoes".
+export const MAX_DETAIL = 400;
 
 const KEYS = new Set(DETAIL_FIELDS.map((f) => f.key));
 
