@@ -14,6 +14,7 @@
     --card:rgba(255,255,255,.94);--well:#f3f6fa;--line:#e1e8f0;--field:#fff;--field-line:#cfd9e5;
     --ink:#1b2838;--muted:#56677b;--faint:#8794a5;
     --accent:#2d5d8b;--accent-ink:#fff;--accent-soft:#e6eef8;
+    --warn:#8a5410;--warn-soft:#fbf1df;
     --gift:#a8323f;--gift-soft:#f9e9eb;--book:#2c6a52;--book-soft:#e5f1eb;--wild-soft:#eef1f5;
     --shadow:0 1px 2px rgba(27,40,56,.05),0 6px 20px rgba(45,93,139,.08);
     --r:16px;
@@ -108,7 +109,7 @@
   .actions{display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin-top:14px}
   .status{color:var(--muted);font-size:14px}
   .lock{color:var(--muted);font-size:13.5px}
-  /* Sizes and favourites: one field per line, with tap-to-fill chips under the letter sizes. */
+  /* Sizes and favorites: one field per line, with tap-to-fill chips under the letter sizes. */
   input.detail{display:block;width:100%;background:var(--field);color:inherit;border:1px solid var(--field-line);
     border-radius:10px;padding:9px 11px;font:inherit;font-size:16px}
   input.detail::placeholder{color:var(--faint)}
@@ -175,6 +176,83 @@
   .sv-nav{display:flex;align-items:center;gap:10px;margin-top:20px;position:sticky;bottom:-22px;background:#fff;padding:12px 0 4px}
   .sv-nav .btn{margin-left:auto}
   .review .well+.well{margin-top:10px}
+  /* ── Lists of people: one tappable row each ── */
+  .ch{font-size:17px;margin:22px 0 8px;letter-spacing:-.01em}
+  .section-head .ch{margin-bottom:8px}
+  .card.list{padding:0;overflow:hidden}
+  .prow{display:flex;align-items:center;gap:10px;padding:14px 16px;color:inherit;text-decoration:none;min-height:52px}
+  .prow+.prow{border-top:1px solid var(--line)}
+  .prow:active{background:var(--well)}
+  .pname{font-weight:600;font-size:16.5px;display:flex;align-items:center;gap:7px;flex:none}
+  .pmeta{flex:1;display:flex;justify-content:flex-end;align-items:center;flex-wrap:wrap;gap:6px}
+  .pmeta .with,.pmeta .count{color:var(--faint);font-size:13px}
+  .chev{width:8px;height:8px;border-right:2px solid var(--faint);border-bottom:2px solid var(--faint);transform:rotate(-45deg);flex:none;margin-left:2px}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--gift);display:inline-block}
+  .tag.done{opacity:.75}
+
+  /* ── Shopping: the three jobs, in order ── */
+  .steps{list-style:none;margin:12px 0 4px;padding:0;background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden}
+  .steps li+li{border-top:1px solid var(--line)}
+  .steps a,.steps button,.steps div{display:flex;align-items:center;gap:12px;width:100%;padding:13px 16px;background:none;border:0;color:inherit;text-decoration:none;font:inherit;text-align:left}
+  .steps a span:nth-child(2),.steps button span:nth-child(2),.steps div span:nth-child(2){flex:1}
+  .steps li.ok{color:var(--muted)}
+  .num{width:24px;height:24px;border-radius:50%;border:1.5px solid var(--field-line);display:grid;place-items:center;font-size:13px;font-weight:700;flex:none;color:var(--muted)}
+  .num.ok{background:var(--book);border-color:var(--book);color:#fff}
+  .alldone{background:var(--book-soft);color:var(--book);border-radius:12px;padding:12px 16px;font-weight:600;margin:12px 0 4px}
+  .news{margin:14px 0 0}
+
+  /* ── A person ── */
+  .back{display:inline-block;color:var(--accent);text-decoration:none;font-weight:600;font-size:15px;margin:2px 0 8px}
+  .pn{font-size:28px;display:flex;align-items:center;gap:10px;margin-bottom:12px}
+  .ticks{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
+  .tick{display:flex;align-items:flex-start;gap:12px;background:var(--card);border:1px solid var(--field-line);border-radius:14px;padding:13px 15px;cursor:pointer;font-weight:600;font-size:16px}
+  .tick input{width:22px;height:22px;accent-color:var(--book);margin:0;flex:none}
+  .tick:has(input:checked){background:var(--book-soft);border-color:#b9d8c9;color:var(--book)}
+  .tick .sub{display:block;font-weight:500;font-size:13.5px;color:var(--muted);margin-top:2px}
+  .card.answers{padding:4px 18px 18px}
+  .sec{padding-top:18px}
+  .sec+.sec{margin-top:4px;border-top:1px solid var(--line)}
+  .sh{display:flex;align-items:center;gap:8px;font-size:15.5px;margin:0 0 10px;letter-spacing:-.005em}
+  .sh .aside{margin-left:auto;font-weight:500;color:var(--faint);font-size:12.5px}
+  .hero{font-size:17px;line-height:1.55}
+  .tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px}
+  .tile{background:var(--well);border-radius:12px;padding:9px 12px}
+  .tile.wide{grid-column:1/-1}
+  .tile .k,.gkrow .k{font-size:12.5px;font-weight:600;color:var(--muted)}
+  .tile .v{font-size:20px;font-weight:700;letter-spacing:-.01em;overflow-wrap:anywhere}
+  .tile.wide .v{font-size:16px;font-weight:600}
+  .gk{display:flex;flex-direction:column}
+  .gkrow{display:flex;gap:12px;align-items:flex-start;padding:10px 0}
+  .gkrow+.gkrow{border-top:1px solid var(--line)}
+  .gkrow .gi{font-size:18px;line-height:1.3;width:22px;text-align:center;flex:none}
+  .gkrow.warn{background:var(--warn-soft);border-radius:12px;padding:10px 12px;margin:4px 0;border-top:0}
+  .gkrow.warn .k,.gkrow.warn .text{color:var(--warn)}
+  .gkrow.warn + .gkrow{border-top:0}
+  .pchips{display:flex;flex-wrap:wrap;gap:7px}
+  .pchips span{background:#fff;border:1px solid var(--field-line);border-radius:999px;padding:5px 12px;font-size:14.5px}
+  .hints li{background:none;border-left:3px solid var(--field-line);border-radius:0;padding:2px 0 2px 12px}
+  .hints li .text{font-size:15.5px}
+  .btn.small{padding:7px 14px;font-size:14.5px;margin-top:12px}
+  .sec .add{margin-top:12px;padding-top:0;border-top:0}
+
+  /* ── Me: four folding sections and one Save ── */
+  .cta.big{flex-direction:column;align-items:stretch;text-align:left;gap:12px}
+  .cta.big p{flex:none}
+  .cta.big .btn{font-size:16.5px;padding:12px 18px}
+  .cta.big .link{font-size:14.5px;align-self:center}
+  .card.editor{padding:4px 0 16px}
+  .fold summary{display:flex;align-items:center;gap:10px;padding:15px 18px;cursor:pointer;list-style:none}
+  .fold summary::-webkit-details-marker{display:none}
+  .fold summary::after{content:"";width:8px;height:8px;border-right:2px solid var(--faint);border-bottom:2px solid var(--faint);transform:rotate(45deg);margin:-4px 2px 0 4px;transition:transform .15s}
+  .fold[open] summary::after{transform:rotate(-135deg);margin-top:4px}
+  .fold+.fold{border-top:1px solid var(--line)}
+  .fi{font-size:18px}
+  .ft{font-weight:600;font-size:16px;flex:1}
+  .st{font-size:13px;color:var(--faint);font-weight:500}
+  .st.ok{color:var(--book);font-weight:600}
+  .fb{padding:0 18px 18px}
+  .editor .actions{padding:4px 18px 0;margin-top:6px;border-top:1px solid var(--line);padding-top:14px}
+  .retake{color:var(--muted);font-size:14px;text-align:center;margin:-4px 0 8px}
   .toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,20px);opacity:0;z-index:10;background:var(--ink);color:#fff;
     padding:9px 16px;border-radius:999px;font-size:14px;font-weight:600;transition:opacity .2s,transform .2s;pointer-events:none}
   .toast.on{opacity:1;transform:translate(-50%,0)}
@@ -215,13 +293,12 @@ const api = (path, method = "GET", body) =>
 
 const PROMPTS = {
   gift: { label: "Gift ideas", placeholder: "Hobbies, things you've been eyeing, a wish-list link — anything that would make a good gift." },
-  book: { label: "Book ideas", placeholder: "What you like to read, a few favourites, authors or genres you'd try — and what you've already read, so nobody repeats it." },
+  book: { label: "Book ideas", placeholder: "What you like to read, a few favorites, authors or genres you'd try — and what you've already read, so nobody repeats it." },
 };
 
 let state;
 let editingAssignment = false;
 let editingGiver = null;   // organizer: whose assignment is open
-const openPeople = new Set();
 const drafts = new Map();  // unsaved text survives a re-render caused by saving something else
 
 // ── What's new since your last visit ──
@@ -240,26 +317,47 @@ const hasDetails = (about) => Object.keys(about.details || {}).length > 0;
 const isNewAbout = (p) => !!since && p.about.updated > since && !!(p.about.gift.trim() || p.about.book.trim() || hasDetails(p.about));
 const newHints = (p) => p.hints.filter(isNewHint).length;
 
+// ── Where you are ─────────────────────────────────────────────────────────────
+// Three tabs in the order you use them — say what you'd like, then shop, then browse — plus one page per person,
+// reached from either list. The person page is the only place a person is drawn in full, so there is one place to
+// read their answers, one place to tick them off and one place to leave a hint.
 const TABS = [
-  { id: "list", label: "My list" },
-  { id: "me", label: "About me" },
-  { id: "everyone", label: "Everyone" },
+  { id: "me", label: "Me" },
+  { id: "shop", label: "Shopping" },
+  { id: "people", label: "People" },
   { id: "organizer", label: "Organizer", organizerOnly: true },
 ];
 const tabs = () => TABS.filter((t) => !t.organizerOnly || state.isOrganizer);
-const currentTab = () => { const id = location.hash.slice(1); return tabs().some((t) => t.id === id) ? id : "list"; };
+const OLD = { list: "shop", everyone: "people" }; // links from before the redesign still land somewhere sensible
+
+/** `{tab, person?, kid?}` from the URL. A person page belongs to whichever list you came from. */
+function route() {
+  const h = location.hash.slice(1);
+  const [head, arg] = h.split("/");
+  if (head === "p" && arg && personOf(arg)) return { tab: lastList, person: arg };
+  if (head === "me" && arg && state.people.some((p) => p.id === arg && p.kid && p.canEdit)) return { tab: "me", kid: arg };
+  const id = OLD[head] ?? head;
+  return { tab: tabs().some((t) => t.id === id) ? id : landing() };
+}
+const currentTab = () => route().tab;
+let lastList = "shop"; // where a person page's Back goes
+/** First visit lands on Me until you've written something — it's the first job — and on Shopping after that. */
+const landing = () => (aboutEmpty(state.me.about) ? "me" : "shop");
+const aboutEmpty = (a) => !a.gift.trim() && !a.book.trim() && !hasDetails(a);
 
 async function load() {
   state = await api("/me");
   if (since === undefined) since = readSeen();
   state.organizer = state.isOrganizer ? await api("/assignments") : null;
+  // Pin the landing tab in the URL so saving your first answer doesn't move you somewhere else mid-thought.
+  if (!location.hash) history.replaceState(null, "", "#" + landing());
   render();
 }
 
 const coupleOf = (id) => (state.bookCouples || []).find((c) => c.includes(id));
 /** A book for either partner is the couple's one book, compared by its first id — the same rule as the Worker. */
 const bookKey = (id) => coupleOf(id)?.[0] ?? id;
-const bookName = (id) => (coupleOf(id) || [id]).map((x) => nameOf(x)).join(" & ");
+const bookName = (id) => (coupleOf(id) || [id]).map((x) => nameOf(x)).join(" and ");
 const partnerOf = (id) => (coupleOf(id) || []).find((x) => x !== id);
 const target = (id, kind) => (kind === "book" ? bookKey(id) : id);
 const hasBook = (id) => !!state.assignment.book && bookKey(id) === state.assignment.book;
@@ -267,85 +365,90 @@ const isBought = (id, kind) => state.bought.some((b) => b.kind === kind && b.per
 const collabs = (id, kind) => state.collaborators.find((c) => c.kind === kind && c.person === target(id, kind))?.givers ?? [];
 const nameOf = (id) => (id === state.me.id ? state.me.name : state.people.find((p) => p.id === id)?.name ?? id);
 const personOf = (id) => state.people.find((p) => p.id === id);
-const seenBy = () => (state.isOrganizer ? "Only you can see who you have." : "Only you and Anne can see who you have.");
+const myKinds = (p) => [...(state.assignment.gifts.includes(p.id) || p.kid ? ["gift"] : []), ...(hasBook(p.id) ? ["book"] : [])];
+const isNew = (p) => newHints(p) > 0 || isNewAbout(p);
+const andList = (xs) => (xs.length < 2 ? xs.join("") : `${xs.slice(0, -1).join(", ")} and ${xs[xs.length - 1]}`);
 
 function draftArea(key, value, attrs = "") {
   const v = drafts.has(key) ? drafts.get(key) : value;
   return `<textarea data-draft="${esc(key)}" ${attrs}>${esc(v)}</textarea>`;
 }
-
 function draftInput(key, value, attrs = "") {
   const v = drafts.has(key) ? drafts.get(key) : value;
   return `<input class="detail" data-draft="${esc(key)}" value="${esc(v)}" ${attrs}>`;
 }
 const fieldsIn = (group) => state.detailFields.filter((f) => f.group === group);
 
-// ── Pieces ──────────────────────────────────────────────────────────────────
+// ── Small pieces ─────────────────────────────────────────────────────────────
 
-/** Sizes in a grid, favourites one per line — or nothing at all when neither has anything in it. */
-function factsBlock(details, group, title, wide) {
-  const rows = fieldsIn(group).filter((f) => details[f.key]);
-  if (!rows.length) return "";
-  return `<div class="idea"><div class="idea-label">${title}</div><div class="facts${wide ? " wide" : ""}">${rows
-    .map((f) => `<div><div class="k">${esc(f.label)}</div><div class="v">${esc(details[f.key])}</div></div>`).join("")}</div></div>`;
-}
-
-function aboutBlock(p) {
-  const g = p.about.gift.trim(), b = p.about.book.trim(), d = p.about.details || {};
-  const body = !g && !b && !hasDetails(p.about)
-    ? `<p class="empty">${esc(p.name)} hasn't written anything yet.</p>`
-    : (g ? `<div class="idea"><div class="idea-label">${PROMPTS.gift.label}</div><p class="text">${esc(g)}</p></div>` : "") +
-      factsBlock(d, "sizes", "Sizes", false) +
-      factsBlock(d, "likes", "Good to know", true) +
-      (b ? `<div class="idea"><div class="idea-label">${PROMPTS.book.label}</div><p class="text">${esc(b)}</p></div>` : "");
-  return `<section class="block"><h4 class="label">${p.kid ? `About ${esc(p.name)}` : `From ${esc(p.name)}`}${isNewAbout(p) ? `<span class="tag new" style="margin-left:auto">Updated</span>` : ""}</h4><div class="well">${body}</div></section>`;
-}
-
-function hintsBlock(p) {
-  const list = p.hints.map((h) => `<li data-hint="${h.id}"><p class="text">${esc(h.text)}</p>
-      <div class="by">— ${esc(h.author)}${isNewHint(h) ? ` <span class="tag new">New</span>` : ""}${h.mine ? ` · <button class="link" data-action="edit-hint">Edit</button><button class="link" data-action="delete-hint">Delete</button>` : ""}</div></li>`).join("");
-  return `<section class="block"><h4 class="label">Hints from others<span class="aside">🔒 Hidden from ${esc(p.name)}</span></h4>
-    ${list ? `<ul class="hints">${list}</ul>` : `<p class="empty">No hints yet.</p>`}</section>`;
-}
-
-function addHint(p) {
-  return `<div class="add" data-add-hint="${esc(p.id)}">
-    <h4 class="label">Add a hint</h4>
-    ${draftArea("hint:" + p.id, "", `placeholder="A gift or book idea for ${esc(p.name)}…"`)}
-    <div class="actions"><button class="btn" data-action="add-hint">Add hint</button><span class="lock">🔒 ${esc(p.name)} won't see it. Everyone else will.</span><span class="status"></span></div>
-  </div>`;
-}
-
-const giftTag = `<span class="tag gift">🎁 Gift</span>`;
-/** Your tags for one person — gift, book (naming the partner when it's a shared book), a tick once you've got it. */
-function tagsFor(p) {
+/** The pills on a row: what you're getting them, ticked once you have it. Nothing for a person you aren't. */
+function pills(p) {
   const a = state.assignment;
   const done = (kind) => (isBought(p.id, kind) ? " ✓" : "");
-  const partner = partnerOf(p.id);
-  return (a.gifts.includes(p.id) ? `<span class="tag gift">🎁 Gift${done("gift")}</span>` : "") +
-    (hasBook(p.id) ? `<span class="tag book">📕 Book${partner ? ` · with ${esc(nameOf(partner))}` : ""}${done("book")}</span>` : "") +
-    (p.kid ? `<span class="tag wild">Wild card${done("gift")}</span>` : "");
+  return (a.gifts.includes(p.id) ? `<span class="tag gift${isBought(p.id, "gift") ? " done" : ""}">🎁 Gift${done("gift")}</span>` : "") +
+    (hasBook(p.id) ? `<span class="tag book${isBought(p.id, "book") ? " done" : ""}">📕 Book${done("book")}</span>` : "");
+}
+
+/** One row in a list of people: name, a dot if something's new, your pills, a chevron. The whole row is the link. */
+function personRow(p, extra = "") {
+  return `<a class="prow" href="#p/${esc(p.id)}"><span class="pname">${esc(p.name)}${isNew(p) ? `<span class="dot" aria-label="Something new"></span>` : ""}</span>
+    <span class="pmeta">${extra}${pills(p)}</span><span class="chev" aria-hidden="true"></span></a>`;
 }
 
 /**
- * One tick per thing you're getting this person, and under it whoever else has them for the same thing.
- * A kid gets a tick too — nobody is assigned a kid, but anybody might pick something up.
+ * The tick under a person's name. No box around it and no heading: the row you tapped already said you're
+ * buying for them, so all this has to do is let you say you've got it — and who else is on it.
  */
-function gotBlock(p) {
-  const kinds = [...(state.assignment.gifts.includes(p.id) || p.kid ? ["gift"] : []), ...(hasBook(p.id) ? ["book"] : [])];
-  if (!kinds.length) return "";
-  return `<div class="got">${kinds.map((kind) => {
-    const label = kind === "book" ? `Got the book${partnerOf(p.id) ? ` for ${esc(bookName(p.id))}` : ""}` : p.kid ? `Got something for ${esc(p.name)}` : "Got the gift";
-    const others = collabs(p.id, kind);
-    const who = kind === "book" ? esc(bookName(p.id)) : esc(p.name);
-    const with_ = others.length
-      ? `<span class="with">👥 Also giving ${who} ${kind === "book" ? "a book" : "a gift"}: ${others.map((g) => `${esc(g.name)} (${g.bought ? "got it ✓" : "not yet"})`).join(", ")}</span>`
-      : "";
-    return `<label class="check"><input type="checkbox" data-bought="${kind}" data-for="${esc(p.id)}" ${isBought(p.id, kind) ? "checked" : ""}><span>${label}${with_}</span></label>`;
-  }).join("")}</div>`;
+function tickLine(p, kind) {
+  const who = kind === "book" ? bookName(p.id) : p.name;
+  const label = kind === "book" ? `Got the book for ${esc(who)}` : p.kid ? `Got something for ${esc(p.name)}` : `Got ${esc(p.name)}'s gift`;
+  const others = collabs(p.id, kind);
+  const thing = kind === "book" ? "a book" : "a gift";
+  const sub = !others.length ? ""
+    : others.length === 1
+      ? `${esc(others[0].name)} is getting ${esc(who)} ${thing} too · ${others[0].bought ? "already got it" : "not yet"}`
+      : `Also getting ${esc(who)} ${thing}: ${others.map((g) => `${esc(g.name)} (${g.bought ? "got it" : "not yet"})`).join(", ")}`;
+  return `<label class="tick"><input type="checkbox" data-bought="${kind}" data-for="${esc(p.id)}" ${isBought(p.id, kind) ? "checked" : ""}>
+    <span>${label}${sub ? `<span class="sub">${sub}</span>` : ""}</span></label>`;
 }
+
+const LIKE_ICON = { colors: "🎨", treats: "🍫", brands: "🛍️", avoid: "⚠️" };
+
+/** What somebody would like, each kind of answer in its own shape. Sections they haven't filled in aren't drawn. */
+function answers(p, { bookFirst = false } = {}) {
+  const a = p.about, d = a.details || {};
+  const sec = (icon, title, body) => `<section class="sec"><h3 class="sh"><span aria-hidden="true">${icon}</span>${title}</h3>${body}</section>`;
+  const gift = a.gift.trim() ? sec("🎁", "Gift ideas", `<p class="hero text">${esc(a.gift.trim())}</p>`) : "";
+  const book = a.book.trim() ? sec("📕", "Book ideas", `<p class="hero text">${esc(a.book.trim())}</p>`) : "";
+  const sizes = fieldsIn("sizes").filter((f) => d[f.key]);
+  const sizeSec = sizes.length ? sec("📏", "Sizes", `<div class="tiles">${sizes.map((f) =>
+    `<div class="tile${f.key === "otherSizes" ? " wide" : ""}"><div class="k">${esc(f.label)}</div><div class="v">${esc(d[f.key])}</div></div>`).join("")}</div>`) : "";
+  const likes = fieldsIn("likes").filter((f) => d[f.key] && f.key !== "stocking");
+  const likeSec = likes.length ? sec("💡", "Good to know", `<div class="gk">${likes.map((f) =>
+    `<div class="gkrow${f.key === "avoid" ? " warn" : ""}"><span class="gi" aria-hidden="true">${LIKE_ICON[f.key] ?? "•"}</span><div><div class="k">${esc(f.label)}</div><div class="text">${esc(d[f.key])}</div></div></div>`).join("")}</div>`) : "";
+  const stocking = (d.stocking || "").split(",").map((s) => s.trim()).filter(Boolean);
+  const stockSec = stocking.length ? sec("🧦", "Stocking stuffers", `<div class="pchips">${stocking.map((s) => `<span>${esc(s.charAt(0).toUpperCase() + s.slice(1))}</span>`).join("")}</div>`) : "";
+  const all = bookFirst ? [book, gift, sizeSec, likeSec, stockSec] : [gift, sizeSec, likeSec, stockSec, book];
+  const body = all.join("");
+  return body || `<p class="empty">${esc(p.name)} hasn't filled anything in yet.</p>`;
+}
+
+function hintsSection(p) {
+  const list = p.hints.map((h) => `<li data-hint="${h.id}"><p class="text">${esc(h.text)}</p>
+      <div class="by">${esc(h.author)}${isNewHint(h) ? ` <span class="tag new">New</span>` : ""}${h.mine ? ` · <button class="link" data-action="edit-hint">Edit</button><button class="link" data-action="delete-hint">Delete</button>` : ""}</div></li>`).join("");
+  const form = hintFormFor === p.id
+    ? `<div class="add" data-add-hint="${esc(p.id)}">${draftArea("hint:" + p.id, "", `placeholder="A gift or book idea for ${esc(p.name)}…" autofocus`)}
+        <div class="actions"><button class="btn" data-action="add-hint">Add hint</button><button class="link" data-action="hide-hint-form">Cancel</button><span class="status"></span></div></div>`
+    : `<button class="btn outline small" data-action="show-hint-form" data-for="${esc(p.id)}">Leave a hint</button>`;
+  return `<section class="sec"><h3 class="sh"><span aria-hidden="true">🤫</span>Secret hints<span class="aside">Hidden from ${esc(p.name)}</span></h3>
+    ${list ? `<ul class="hints">${list}</ul>` : `<p class="empty">No hints yet. Know something ${esc(p.name)} would love?</p>`}${form}</section>`;
+}
+let hintFormFor = null;
+
+// ── Shopping ─────────────────────────────────────────────────────────────────
+
 const bookTag = `<span class="tag book">📕 Book exchange</span>`;
-const wildTag = `<span class="tag wild">Wild card</span>`;
+const giftTag = `<span class="tag gift">🎁 Gift</span>`;
 
 /** Tick-boxes for gifts, one radio for the book. For your own assignment and, for an organizer, anybody's. */
 let pickerSeq = 0;
@@ -364,36 +467,75 @@ function picker(giver, a, cancellable) {
   </div>`;
 }
 
-// ── Tabs ────────────────────────────────────────────────────────────────────
-
-function listTab() {
+function shopTab() {
   const a = state.assignment;
-  const empty = !a.gifts.length && !a.book;
-  if (empty || editingAssignment) {
-    return `<h2>Who do you have?</h2><p class="intro">Tick the people from Anne's text. ${seenBy()}</p>
-      <div class="card">${picker(state.me.id, a, !empty)}</div>`;
+  const assigned = a.gifts.length > 0 || !!a.book;
+  const things = [...a.gifts.map((id) => [id, "gift"]), ...(a.book ? [[a.book, "book"]] : [])];
+  const got = things.filter(([id, kind]) => isBought(id, kind)).length;
+  const wrote = !aboutEmpty(state.me.about);
+  const steps = [
+    { done: wrote, text: "Tell people what you'd like", href: "#me" },
+    { done: assigned, text: "Add who you're buying for", action: "edit-assignment" },
+    { done: assigned && got === things.length, text: assigned ? `Get the gifts · ${got} of ${things.length}` : "Get the gifts" },
+  ];
+  const allDone = steps.every((s) => s.done);
+  const checklist = allDone ? `<p class="alldone">🎉 You're all set — everything's bought.</p>` : `<ol class="steps">${steps.map((s, i) => {
+    const inner = `<span class="num${s.done ? " ok" : ""}">${s.done ? "✓" : i + 1}</span><span>${s.text}</span>`;
+    return `<li class="${s.done ? "ok" : ""}">${s.href && !s.done ? `<a href="${s.href}">${inner}<span class="chev" aria-hidden="true"></span></a>`
+      : s.action && !s.done ? `<button data-action="${s.action}">${inner}<span class="chev" aria-hidden="true"></span></button>` : `<div>${inner}</div>`}</li>`;
+  }).join("")}</ol>`;
+
+  if (!assigned || editingAssignment) {
+    return `<h2>Shopping</h2>${checklist}
+      <div class="card"><h3 class="ch">Who are you buying for?</h3><p class="intro">Tick the people from Anne's text.</p>${picker(state.me.id, a, assigned)}</div>
+      <p class="note">🔒 ${seenBy()}</p>`;
   }
   // A shared book puts both partners on your list: you're shopping from both of their notes.
   const ids = [...new Set([...a.gifts, ...(a.book ? coupleOf(a.book) || [a.book] : [])])];
-  const cards = ids.map((id) => {
-    const p = personOf(id);
-    if (!p) return "";
-    return `<article class="card"><header class="person-head"><h3>${esc(p.name)}</h3>${tagsFor(p)}</header>
-      ${gotBlock(p)}${aboutBlock(p)}${hintsBlock(p)}</article>`;
-  }).join("");
-  const things = [...a.gifts.map((id) => [id, "gift"]), ...(a.book ? [[a.book, "book"]] : [])];
-  const got = things.filter(([id, kind]) => isBought(id, kind)).length;
-  const progress = `<p class="progress">${got === things.length ? "🎉 You've got everything." : `🛍️ ${got} of ${things.length} bought`}</p>`;
-  const news = ids.map(personOf).filter(Boolean).flatMap((p) => {
+  const people = ids.map(personOf).filter(Boolean);
+  const news = people.flatMap((p) => {
     const n = newHints(p);
     return [...(n ? [`${n} new hint${n === 1 ? "" : "s"} for ${esc(p.name)}`] : []), ...(isNewAbout(p) ? [`new ideas from ${esc(p.name)}`] : [])];
   });
-  const newsLine = news.length ? `<p class="news">✨ Since your last visit: ${news.join(" · ")}</p>` : "";
-  return `<div class="section-head"><h2>You're buying for</h2><button class="btn outline" data-action="edit-assignment">Change</button></div>
-    <p class="note">🔒 ${seenBy()}</p>${progress}${newsLine}${cards}`;
+  // Who else is on a person is said on their page, next to the tick it belongs to: on a row it can't say
+  // whether it's the gift or the book, and "with Jack" on Rob's row read as Jack splitting Rob's gift.
+  const rows = people.map((p) => personRow(p)).join("");
+  return `<h2>Shopping</h2>${checklist}
+    ${news.length ? `<p class="news">✨ Since your last visit: ${news.join(" · ")}</p>` : ""}
+    <div class="section-head"><h3 class="ch">Your list</h3><button class="link" data-action="edit-assignment">Change</button></div>
+    <div class="card list">${rows}</div>
+    <p class="note">🔒 ${seenBy()}</p>`;
+}
+const seenBy = () => (state.isOrganizer ? "Only you can see who you're buying for." : "Only you and Anne can see who you're buying for.");
+
+// ── People ───────────────────────────────────────────────────────────────────
+
+function peopleTab() {
+  const adults = state.people.filter((p) => !p.kid), kids = state.people.filter((p) => p.kid);
+  const row = (p) => personRow(p, p.hints.length ? `<span class="count">${p.hints.length} hint${p.hints.length === 1 ? "" : "s"}</span>` : "");
+  return `<h2>People</h2><p class="intro">Read anyone's wish list, and leave a secret hint they won't see.</p>
+    <div class="card list">${adults.map(row).join("")}</div>
+    ${kids.length ? `<h3 class="ch">Kids</h3><p class="intro">Nobody's assigned the kids — a gift for them is a bonus.</p><div class="card list">${kids.map(row).join("")}</div>` : ""}`;
 }
 
+// ── A person ─────────────────────────────────────────────────────────────────
+
+function personPage(id) {
+  const p = personOf(id);
+  const kinds = myKinds(p);
+  const bookFirst = kinds.includes("book") && !kinds.includes("gift");
+  const back = lastList === "people" ? "People" : "Shopping";
+  return `<a class="back" href="#${lastList}">‹ ${back}</a>
+    <h2 class="pn">${esc(p.name)}${isNewAbout(p) ? `<span class="tag new">Updated</span>` : ""}</h2>
+    ${kinds.length ? `<div class="ticks">${kinds.map((k) => tickLine(p, k)).join("")}</div>` : ""}
+    <div class="card answers">${answers(p, { bookFirst })}</div>
+    <div class="card">${hintsSection(p)}</div>`;
+}
+
+// ── Me ───────────────────────────────────────────────────────────────────────
+
 const detailKey = (id, key) => `about:${id}:d:${key}`;
+const openFolds = new Set(); // which sections of the editor are open, kept across re-renders
 
 function detailFields(id, details, group) {
   return fieldsIn(group).map((f) => {
@@ -407,42 +549,42 @@ function detailFields(id, details, group) {
   }).join("");
 }
 
-function aboutEditor(id, about, heading) {
+/** The four parts of About me, each folded to one line that says how far along it is. One Save for all four. */
+function aboutEditor(id, about) {
   const d = about.details || {};
-  return `<div class="card" data-about="${esc(id)}">${heading}
-    <div class="field"><h4 class="label">${PROMPTS.gift.label}</h4>${draftArea(`about:${id}:gift`, about.gift, `name="gift" placeholder="${esc(PROMPTS.gift.placeholder)}"`)}</div>
-    <p class="subhead">Sizes</p><p class="hint-text">Whatever you'd tell a shop assistant. Skip any you'd rather not share.</p>
-    <div class="details">${detailFields(id, d, "sizes")}</div>
-    <p class="subhead">Good to know</p><p class="hint-text">The small things that make a gift feel like it's for you.</p>
-    <div class="details wide">${detailFields(id, d, "likes")}</div>
-    <div class="field" style="margin-top:22px;padding-top:18px;border-top:1px solid var(--line)"><h4 class="label">${PROMPTS.book.label}</h4>${draftArea(`about:${id}:book`, about.book, `name="book" placeholder="${esc(PROMPTS.book.placeholder)}"`)}</div>
+  const count = (group) => fieldsIn(group).filter((f) => d[f.key]).length;
+  const status = (n, of) => (n === 0 ? `<span class="st">Empty</span>` : n === of ? `<span class="st ok">Done</span>` : `<span class="st">${n} of ${of}</span>`);
+  const fold = (key, icon, title, st, body) => `<details class="fold" data-fold="${id}:${key}" ${openFolds.has(`${id}:${key}`) ? "open" : ""}>
+    <summary><span class="fi" aria-hidden="true">${icon}</span><span class="ft">${title}</span>${st}</summary><div class="fb">${body}</div></details>`;
+  const sizes = fieldsIn("sizes"), likes = fieldsIn("likes");
+  return `<div class="card editor" data-about="${esc(id)}">
+    ${fold("gift", "🎁", "Gift ideas", status(about.gift.trim() ? 1 : 0, 1), `${draftArea(`about:${id}:gift`, about.gift, `name="gift" placeholder="${esc(PROMPTS.gift.placeholder)}"`)}`)}
+    ${fold("sizes", "📏", "Sizes", status(count("sizes"), sizes.length), `<p class="hint-text">Whatever you'd tell a store clerk. Skip any you'd rather not share.</p><div class="details">${detailFields(id, d, "sizes")}</div>`)}
+    ${fold("likes", "💡", "Good to know", status(count("likes"), likes.length), `<p class="hint-text">The small things that make a gift feel like it's for you.</p><div class="details">${detailFields(id, d, "likes")}</div>`)}
+    ${fold("book", "📕", "Book ideas", status(about.book.trim() ? 1 : 0, 1), `${draftArea(`about:${id}:book`, about.book, `name="book" placeholder="${esc(PROMPTS.book.placeholder)}"`)}`)}
     <div class="actions"><button class="btn" data-action="save-about">Save</button><span class="status"></span></div></div>`;
 }
 
-function meTab() {
-  let h = `<h2>About me</h2><p class="intro">Help whoever has you find something good. Everyone can read this.</p>
-    <div class="card cta"><p><strong>✨ Not sure what to write?</strong>Tap through seven quick questions and we'll fill this in for you — stocking stuffers included.</p>
-    <button class="btn" data-action="survey">Take the 90-second survey</button></div>`;
-  h += aboutEditor(state.me.id, state.me.about, "");
-  for (const k of state.people.filter((p) => p.kid && p.canEdit)) {
-    h += aboutEditor(k.id, k.about, `<header class="person-head"><h3>${esc(k.name)}</h3>${wildTag}</header>
-      <p class="intro" style="margin-top:-6px">You can write this for ${esc(k.name)}. Gifts for ${esc(k.name)} are optional.</p>`);
+function meTab(kidID) {
+  if (kidID) {
+    const k = personOf(kidID);
+    return `<a class="back" href="#me">‹ Me</a><h2>${esc(k.name)}</h2>
+      <p class="intro">You're filling this in for ${esc(k.name)}. Everyone can read it.</p>${aboutEditor(k.id, k.about)}`;
   }
-  return h;
+  const empty = aboutEmpty(state.me.about);
+  const survey = empty
+    ? `<div class="card cta big"><p><strong>✨ Start with 7 quick questions</strong>About 90 seconds. We'll fill this in for you, stocking stuffers included.</p>
+        <button class="btn" data-action="survey">Start the survey</button><button class="link" data-action="fill-yourself">or fill it in yourself</button></div>`
+    : "";
+  const kids = state.people.filter((p) => p.kid && p.canEdit);
+  return `<h2>What you'd like</h2><p class="intro">Whoever's buying for you reads this — and so can everyone else.</p>
+    ${survey}${aboutEditor(state.me.id, state.me.about)}
+    ${empty ? "" : `<p class="retake">Want ideas? <button class="link" data-action="survey">Take the 90-second survey</button></p>`}
+    ${kids.length ? `<h3 class="ch">Also yours to fill in</h3><div class="card list">${kids.map((k) =>
+      `<a class="prow" href="#me/${esc(k.id)}"><span class="pname">${esc(k.name)}</span><span class="pmeta">${aboutEmpty(k.about) ? `<span class="count">Not started</span>` : ""}</span><span class="chev" aria-hidden="true"></span></a>`).join("")}</div>` : ""}`;
 }
 
-function everyoneTab() {
-  const a = state.assignment;
-  const rows = state.people.map((p) => {
-    const tags = tagsFor(p);
-    const fresh = newHints(p);
-    const count = p.hints.length ? `<span class="count">${p.hints.length} hint${p.hints.length === 1 ? "" : "s"}${fresh ? ` · ${fresh} new` : ""}</span>` : "";
-    const hasNew = fresh || isNewAbout(p);
-    return `<details class="card${hasNew ? " has-new" : ""}" data-person="${esc(p.id)}"><summary><h3>${esc(p.name)}</h3>${tags}${count}</summary>
-      <div class="body">${gotBlock(p)}${aboutBlock(p)}${hintsBlock(p)}${addHint(p)}</div></details>`;
-  }).join("");
-  return `<h2>Everyone</h2><p class="intro">See what people want, and leave a hint for anyone. A hint is hidden from the person it's about.</p>${rows}`;
-}
+// ── Organizer ────────────────────────────────────────────────────────────────
 
 function organizerTab() {
   const givers = state.organizer.givers;
@@ -478,16 +620,18 @@ function organizerTab() {
 }
 
 function render() {
-  const tab = currentTab();
+  const r = route();
+  if (r.tab === "shop" || r.tab === "people") lastList = r.tab;
   $("#hello").textContent = `Hi, ${state.me.name}`;
   const nav = $("#tabs");
   nav.hidden = false;
-  nav.innerHTML = `<div class="seg">${tabs().map((t) => `<a href="#${t.id}" ${t.id === tab ? `aria-current="page"` : ""}>${t.label}</a>`).join("")}</div>`;
-  $("#view").innerHTML = { list: listTab, me: meTab, everyone: everyoneTab, organizer: organizerTab }[tab]();
-  document.querySelectorAll("details[data-person]").forEach((d) => { if (openPeople.has(d.dataset.person)) d.open = true; });
+  nav.innerHTML = `<div class="seg">${tabs().map((t) => `<a href="#${t.id}" ${t.id === r.tab ? `aria-current="page"` : ""}>${t.label}</a>`).join("")}</div>`;
+  $("#view").innerHTML = r.person ? personPage(r.person)
+    : r.tab === "me" ? meTab(r.kid)
+    : { shop: shopTab, people: peopleTab, organizer: organizerTab }[r.tab]();
 }
 
-addEventListener("hashchange", () => { if (state) { render(); scrollTo(0, 0); } });
+addEventListener("hashchange", () => { if (state) { hintFormFor = null; editingAssignment = false; render(); scrollTo(0, 0); } });
 
 function toast(text) {
   const t = $("#toast");
@@ -534,6 +678,9 @@ $("#view").addEventListener("click", async (e) => {
     return;
   }
   if (action === "edit-assignment") { editingAssignment = true; return render(); }
+  if (action === "fill-yourself") { openFolds.add(`${state.me.id}:gift`); render(); return $("[data-about] textarea[name=gift]")?.focus(); }
+  if (action === "show-hint-form") { hintFormFor = button.dataset.for; render(); return $("[data-add-hint] textarea")?.focus(); }
+  if (action === "hide-hint-form") { hintFormFor = null; return render(); }
   if (action === "edit-giver") { editingGiver = button.dataset.giver; return render(); }
   if (action === "cancel-assignment") {
     if (currentTab() === "organizer") editingGiver = null; else editingAssignment = false;
@@ -563,7 +710,7 @@ $("#view").addEventListener("click", async (e) => {
     const box = button.closest("[data-add-hint]");
     const text = $("textarea", box).value.trim();
     if (!text) return;
-    return run(button, status, () => api("/hints", "POST", { subject: box.dataset.addHint, text }),
+    return run(button, status, async () => { await api("/hints", "POST", { subject: box.dataset.addHint, text }); hintFormFor = null; },
       { clear: ["hint:" + box.dataset.addHint], done: "Hint added" });
   }
   const hint = button.closest("[data-hint]");
@@ -677,7 +824,7 @@ $("#view").addEventListener("change", async (e) => {
   try {
     await api("/bought", "PUT", { person: box.dataset.for, kind: box.dataset.bought, bought: box.checked });
     await load();
-    toast(box.checked ? "Ticked off ✓" : "Unticked");
+    toast(box.checked ? "Got it ✓" : "Unticked");
   } catch {
     box.checked = !box.checked;
     box.disabled = false;
@@ -686,8 +833,8 @@ $("#view").addEventListener("change", async (e) => {
 });
 
 document.addEventListener("toggle", (e) => {
-  const d = e.target.closest?.("details[data-person]");
-  if (d) d.open ? openPeople.add(d.dataset.person) : openPeople.delete(d.dataset.person);
+  const d = e.target.closest?.("details[data-fold]");
+  if (d) d.open ? openFolds.add(d.dataset.fold) : openFolds.delete(d.dataset.fold);
 }, true);
 
 load().catch((r) => {

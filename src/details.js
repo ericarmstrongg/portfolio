@@ -1,4 +1,4 @@
-// The short facts a gift-giver needs and nobody puts in a paragraph: sizes, and a handful of favourites.
+// The short facts a gift-giver needs and nobody puts in a paragraph: sizes, and a handful of favorites.
 //
 // This list is the contract between the page and the Worker. The page draws a field per entry; the Worker
 // stores only these keys and refuses any other, so a typo in one place shows up as a 400 rather than as a
@@ -15,8 +15,8 @@ export const DETAIL_FIELDS = [
   { key: "pants", group: "sizes", label: "Pants", placeholder: "32 × 30, or 8" },
   { key: "shoes", group: "sizes", label: "Shoes", placeholder: "US 10½, or women's 8" },
   { key: "otherSizes", group: "sizes", label: "Other sizes", placeholder: "Hat, gloves, ring, dress, PJs…" },
-  // ── Favourites ──
-  { key: "colours", group: "likes", label: "Favourite colours", placeholder: "Navy, forest green — no orange" },
+  // ── Favorites ──
+  { key: "colors", group: "likes", label: "Favorite colors", placeholder: "Navy, forest green — no orange" },
   { key: "treats", group: "likes", label: "Snacks, treats & drinks", placeholder: "Dark chocolate, IPAs, oat-milk latte" },
   { key: "brands", group: "likes", label: "Stores & brands", placeholder: "Patagonia, REI, the local bookshop" },
   { key: "stocking", group: "likes", label: "Stocking stuffers", placeholder: "Hand warmers, dark chocolate, a scratch-off" },

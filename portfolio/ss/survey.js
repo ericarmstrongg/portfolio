@@ -53,7 +53,7 @@ const BY_HOBBY = {
 const BY_TREAT = {
   "Dark chocolate": [S("Dark chocolate bar")],
   "Milk chocolate": [S("Chocolate coins")],
-  "Candy": [S("Favourite candy")],
+  "Candy": [S("Favorite candy")],
   "Salty snacks": [S("Jerky"), S("Fancy nuts")],
   "Baked goods": [S("Homemade cookies")],
   "Coffee beans": [S("Whole-bean coffee")],
@@ -82,7 +82,7 @@ export const STEPS = [
   { id: "hobbies", title: "What do you love doing?", hint: "Pick as many as you like.", multi: true, options: HOBBIES },
   { id: "styles", title: "What kind of gift makes you happiest?", hint: "Pick any.", multi: true, options: STYLES },
   { id: "clothes", title: "Clothes as gifts?", multi: false, options: CLOTHES },
-  { id: "treats", title: "Favourite treats?", hint: "Pick any.", multi: true, options: TREATS },
+  { id: "treats", title: "Favorite treats?", hint: "Pick any.", multi: true, options: TREATS },
   { id: "plenty", title: "You already have plenty of…", hint: "So nobody adds to the pile.", multi: true, options: PLENTY },
   { id: "stocking", title: "Stocking stuffers you'd like", hint: "Picked from your answers. Tap the ones you'd be happy to find.", multi: true, options: suggestStocking },
   { id: "wish", title: "Anything you've had your eye on?", hint: "Optional — a thing, a shop, a link.", text: true },

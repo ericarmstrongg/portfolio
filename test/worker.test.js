@@ -333,7 +333,7 @@ test("being the organizer doesn't reveal hints about yourself", async () => {
   assert.ok(!JSON.stringify(await (await api(h, anne, "/assignments")).json()).includes("chef"));
 });
 
-// ── Sizes and favourites ─────────────────────────────────────────────────────
+// ── Sizes and favorites ─────────────────────────────────────────────────────
 
 test("sizes are read by everybody, like the rest of what you write about yourself", async () => {
   const h = mk(); const tom = await session(h, "tom"); const anne = await session(h, "anne");
